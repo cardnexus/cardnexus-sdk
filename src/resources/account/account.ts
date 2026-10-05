@@ -15,7 +15,7 @@ export class Account extends APIResource {
   vacation: VacationAPI.Vacation = new VacationAPI.Vacation(this._client);
 
   /**
-   * Returns your account: your account id, identity (username, email, avatar, signup date), your seller profile if you've onboarded as a seller, and the list of scopes your API key holds.
+   * Returns your account: your account id, identity (username, email, avatar, signup date), your seller profile if you've onboarded as a seller (including whether CardNexus manages shipping on your new sales), and the list of scopes your API key holds.
    *
    * Requires the `account:read` scope.
    *
@@ -140,6 +140,10 @@ export namespace AccountMeResponse {
      * `live` when your listings are shown on the marketplace. `staged` while they are hidden: a managed account whose seller hasn't completed onboarding yet, or a pro seller whose setup is incomplete.
      */
     status: 'staged' | 'live';
+    /**
+     * `true` when CardNexus manages shipping on your new sales: the buyer pays CardNexus for the shipping, and you ship with a label generated on CardNexus. `false` when you ship your sales yourself. A change only applies to orders placed afterwards — each sale keeps the value it was placed with in its own `shippingManagedByCardNexus` field. The `account.updated` webhook fires when this value changes.
+     */
+    shippingManagedByCardNexus: boolean;
   }
 }
 
