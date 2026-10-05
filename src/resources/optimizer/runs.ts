@@ -126,7 +126,7 @@ export interface Cart {
 }
 
 /**
- * Your cart's items from one seller. Each seller's items ship together as one parcel; the seller's shipping charge is under `seller.shipping`.
+ * Your cart's items from one seller. Each seller's items ship together as one shipment (a parcel, or an untracked letter for a small eligible order); the seller's shipping charge is under `seller.shipping`.
  */
 export interface CartSellerGroup {
   /**

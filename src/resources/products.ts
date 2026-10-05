@@ -590,7 +590,7 @@ export interface SealedProduct {
   languages: Array<string>;
   productType: 'sealed';
   /**
-   * What kind of sealed product this is (e.g. `booster_box`, `booster_pack`, `bundle`, `prerelease_kit`, `commander_deck`, `starter_deck`).
+   * What kind of sealed product this is: one of 36 categories shared by every game (e.g. `booster_box`, `booster`, `bundle`, `prerelease_kit`, `commander_deck`, `starter_deck`). The full list is in the catalog feed guide, under Sealed product categories.
    */
   productCategory: string;
   /**
@@ -1318,7 +1318,7 @@ export interface SealedProductDetail {
   externalIds: ExternalIDs;
   productType: 'sealed';
   /**
-   * What kind of sealed product this is (e.g. `booster_box`, `booster_pack`, `bundle`, `prerelease_kit`, `commander_deck`, `starter_deck`).
+   * What kind of sealed product this is: one of 36 categories shared by every game (e.g. `booster_box`, `booster`, `bundle`, `prerelease_kit`, `commander_deck`, `starter_deck`). The full list is in the catalog feed guide, under Sealed product categories.
    */
   productCategory: string;
   /**
@@ -6669,7 +6669,7 @@ export namespace ProductRetrieveResponse {
     externalIds: ExternalIDs;
     productType: 'sealed';
     /**
-     * What kind of sealed product this is (e.g. `booster_box`, `booster_pack`, `bundle`, `prerelease_kit`, `commander_deck`, `starter_deck`).
+     * What kind of sealed product this is: one of 36 categories shared by every game (e.g. `booster_box`, `booster`, `bundle`, `prerelease_kit`, `commander_deck`, `starter_deck`). The full list is in the catalog feed guide, under Sealed product categories.
      */
     productCategory: string;
     /**

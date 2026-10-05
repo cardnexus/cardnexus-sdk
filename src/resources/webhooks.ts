@@ -250,6 +250,10 @@ export namespace OrderCreatedWebhookEvent {
     items: Array<Data.Item>;
     counterparty: Data.Counterparty;
     /**
+     * `true` when CardNexus manages shipping on this order: the buyer paid CardNexus for the shipping, and the seller ships with a label generated on CardNexus. `false` when the seller ships the order themselves. Set when the order is placed: a later change to the seller's shipping setting only applies to new orders.
+     */
+    shippingManagedByCardNexus: boolean;
+    /**
      * When the order was placed.
      * @format date-time
      */
@@ -398,6 +402,19 @@ export namespace OrderStatusChangedWebhookEvent {
      * Why the status changed, when one applies (e.g. a cancellation or dispute reason). `null` otherwise.
      */
     reason: string | null;
+    /**
+     * `true` when CardNexus manages shipping on this order: the buyer paid CardNexus for the shipping, and the seller ships with a label generated on CardNexus. `false` when the seller ships the order themselves. Set when the order is placed: a later change to the seller's shipping setting only applies to new orders.
+     */
+    shippingManagedByCardNexus: boolean;
+    /**
+     * The shipping the buyer paid for. `tracked` ships with a tracking number. `untracked` ships as a letter, which may have no tracking number.
+     */
+    shippingService: 'tracked' | 'untracked';
+    /**
+     * When this untracked order closes on its own: it completes and the seller is paid, unless a dispute is opened before then. `null` on tracked orders, and until an untracked order ships.
+     * @format date-time
+     */
+    untrackedCloseAt: string | null;
     /**
      * Your own metadata on the sale, as it stands after the change — so you can match the order to your own records without a follow-up call. `null` on the buyer's copy: metadata belongs to the seller alone.
      */

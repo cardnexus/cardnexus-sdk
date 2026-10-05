@@ -298,7 +298,7 @@ export namespace ListingListResponse {
      */
     listing: Data.Listing | null;
     /**
-     * Photos attached to this line, in the order you set them with `PUT /v1/inventory/{inventoryId}/media`. Buyers see them on your Marketplace listing. Empty when there are none.
+     * Photos attached to this line, in the order you set them. Buyers see them on your Marketplace listing. Empty when there are none.
      */
     photos: Array<Data.Photo>;
     /**
@@ -445,7 +445,7 @@ export namespace ListingCreateResponse {
      */
     listing: Line.Listing | null;
     /**
-     * Photos attached to this line, in the order you set them with `PUT /v1/inventory/{inventoryId}/media`. Buyers see them on your Marketplace listing. Empty when there are none.
+     * Photos attached to this line, in the order you set them. Buyers see them on your Marketplace listing. Empty when there are none.
      */
     photos: Array<Line.Photo>;
     /**
@@ -552,7 +552,7 @@ export namespace ListingCreateResponse {
      */
     listing: Remainder.Listing | null;
     /**
-     * Photos attached to this line, in the order you set them with `PUT /v1/inventory/{inventoryId}/media`. Buyers see them on your Marketplace listing. Empty when there are none.
+     * Photos attached to this line, in the order you set them. Buyers see them on your Marketplace listing. Empty when there are none.
      */
     photos: Array<Remainder.Photo>;
     /**
@@ -677,7 +677,7 @@ export interface ListingUpdateResponse {
    */
   listing: ListingUpdateResponse.Listing | null;
   /**
-   * Photos attached to this line, in the order you set them with `PUT /v1/inventory/{inventoryId}/media`. Buyers see them on your Marketplace listing. Empty when there are none.
+   * Photos attached to this line, in the order you set them. Buyers see them on your Marketplace listing. Empty when there are none.
    */
   photos: Array<ListingUpdateResponse.Photo>;
   /**
@@ -793,7 +793,7 @@ export interface ListingDeleteResponse {
    */
   listing: ListingDeleteResponse.Listing | null;
   /**
-   * Photos attached to this line, in the order you set them with `PUT /v1/inventory/{inventoryId}/media`. Buyers see them on your Marketplace listing. Empty when there are none.
+   * Photos attached to this line, in the order you set them. Buyers see them on your Marketplace listing. Empty when there are none.
    */
   photos: Array<ListingDeleteResponse.Photo>;
   /**
