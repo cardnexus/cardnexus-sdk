@@ -784,6 +784,7 @@ const cases: {
         tags: {
           set: ['Trade binder'],
         },
+        photos: ['https://example.com'],
         count: 1,
       });
     },
@@ -1417,9 +1418,7 @@ const cases: {
     path: '/sales/{orderNumber}/mark-shipped',
     label: 'required params',
     run: async () => {
-      const saleDetail = await client.sales.markShipped('orderNumber', {
-        trackingNumber: 'xxxxx',
-      });
+      const saleDetail = await client.sales.markShipped('orderNumber');
     },
   },
 

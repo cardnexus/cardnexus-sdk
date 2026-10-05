@@ -293,7 +293,7 @@ Read the account that owns your API key, check your wallet balance, and turn vac
 
 ### Get your account
 
-Returns your account: your account id, identity (username, email, avatar, signup date), your seller profile if you've onboarded as a seller, and the list of scopes your API key holds.
+Returns your account: your account id, identity (username, email, avatar, signup date), your seller profile if you've onboarded as a seller (including whether CardNexus manages shipping on your new sales), and the list of scopes your API key holds.
 
 Requires the `account:read` scope.
 
@@ -1023,11 +1023,13 @@ const line = await client.lines.retrieve('inventoryId');
 
 ### Update an inventory line
 
-Changes a single inventory line — its quantity, condition, language, finish, grading, `customId`, `comment`, `notes`, `location`, or `tags`. Send only the fields you want to change.
+Changes a single inventory line — its quantity, condition, language, finish, grading, `customId`, `comment`, `notes`, `location`, `tags`, or `photos`. Send only the fields you want to change. A field this endpoint does not list is rejected with `BAD_REQUEST`.
 
 `finish` and `language` must be ones the product exists in — see the product's `finishes` and `languages` on `GET /v1/products/{productId}`. A finish the product doesn't come in is rejected with `INVALID_FINISH`; a language it doesn't come in with `INVALID_LANGUAGE`.
 
 Quantity takes either `{"set": n}` (new total) or `{"adjust": n}` (signed change). A change that would leave zero or fewer cards is rejected with `INSUFFICIENT_QUANTITY` — use `DELETE /v1/inventory/{inventoryId}` to remove a line.
+
+`photos` takes the `url` values of the photos to keep, from the line's `photos`, in the order you want them: a photo you leave out is removed, and `[]` removes every photo. A URL that is not on the line returns `PHOTO_NOT_FOUND`. New photos are uploaded with `PUT /v1/inventory/{inventoryId}/media`.
 
 `location` takes a location name, or `null` to move the line to no location. `tags` takes `{"set": [...]}` (replace the whole set, `[]` clears), `{"add": [...]}` (add, keep the rest), or `{"remove": [...]}` (remove only those). `location` and `tags` names must already exist — a name that matches none of your labels returns `LOCATION_NOT_FOUND` or `TAG_NOT_FOUND`. `notes` is your private note; pass `null` to remove it.
 
@@ -1711,11 +1713,13 @@ The response carries a tracking link under `shipping`. The carrier is detected a
 
 A USPS Intelligent Mail barcode (IMb) number ships the sale as a letter: `shipping.type` is `letter` and the carrier is `usps`. CardNexus cannot follow IMb scans itself; the application that printed the label sends them with `POST /v1/tracking/events`.
 
+When the sale's `shippingService` is `untracked`, the buyer paid for an untracked letter: you can leave `trackingNumber` out and the sale ships without one, with `shipping.trackingNumber` and `shipping.type` set to `null`. The sale then closes on its own at `untrackedCloseAt`. Leaving `trackingNumber` out on a `tracked` sale returns `409 TRACKING_NUMBER_REQUIRED`.
+
 Pass `metadata` to stamp your own key/value pairs in the same call, merged the same way `PATCH /v1/sales/{orderNumber}/metadata` merges them. The two either both apply or neither does: a tracking number rejected as invalid leaves the sale's metadata unchanged, and metadata that would take the sale past its key limit returns `422 METADATA_LIMIT_EXCEEDED` without shipping the order.
 
 CardNexus Shield shipping insurance cannot be opted into through the API — sales shipped here are uninsured. Use the web or mobile app to insure a shipment.
 
-Sales on CardNexus-managed shipping cannot be self-shipped: the buyer already paid CardNexus for the label, so shipping them here would cost you the postage twice. Those sales return `409 SHIPPING_MANAGED_BY_CARDNEXUS`. Generate the shipping label from the web app instead.
+Sales on CardNexus-managed shipping (`shippingManagedByCardNexus: true` on the sale) cannot be self-shipped: the buyer already paid CardNexus for the label, so shipping them here would cost you the postage twice. Those sales return `409 SHIPPING_MANAGED_BY_CARDNEXUS`. Generate the shipping label from the web app instead.
 
 Returns the updated sale, in the same shape as `GET /v1/sales/{orderNumber}`.
 
@@ -1729,9 +1733,7 @@ Requires the `sales:write` scope.
 | Response | [`SaleDetail`](./src/resources/sales.ts) |
 
 ```ts
-const saleDetail = await client.sales.markShipped('orderNumber', {
-  trackingNumber: 'xxxxx',
-});
+const saleDetail = await client.sales.markShipped('orderNumber');
 ```
 
 ### Cancel a sale

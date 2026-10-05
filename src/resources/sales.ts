@@ -69,11 +69,13 @@ export class Sales extends APIResource {
    *
    * A USPS Intelligent Mail barcode (IMb) number ships the sale as a letter: `shipping.type` is `letter` and the carrier is `usps`. CardNexus cannot follow IMb scans itself; the application that printed the label sends them with `POST /v1/tracking/events`.
    *
+   * When the sale's `shippingService` is `untracked`, the buyer paid for an untracked letter: you can leave `trackingNumber` out and the sale ships without one, with `shipping.trackingNumber` and `shipping.type` set to `null`. The sale then closes on its own at `untrackedCloseAt`. Leaving `trackingNumber` out on a `tracked` sale returns `409 TRACKING_NUMBER_REQUIRED`.
+   *
    * Pass `metadata` to stamp your own key/value pairs in the same call, merged the same way `PATCH /v1/sales/{orderNumber}/metadata` merges them. The two either both apply or neither does: a tracking number rejected as invalid leaves the sale's metadata unchanged, and metadata that would take the sale past its key limit returns `422 METADATA_LIMIT_EXCEEDED` without shipping the order.
    *
    * CardNexus Shield shipping insurance cannot be opted into through the API — sales shipped here are uninsured. Use the web or mobile app to insure a shipment.
    *
-   * Sales on CardNexus-managed shipping cannot be self-shipped: the buyer already paid CardNexus for the label, so shipping them here would cost you the postage twice. Those sales return `409 SHIPPING_MANAGED_BY_CARDNEXUS`. Generate the shipping label from the web app instead.
+   * Sales on CardNexus-managed shipping (`shippingManagedByCardNexus: true` on the sale) cannot be self-shipped: the buyer already paid CardNexus for the label, so shipping them here would cost you the postage twice. Those sales return `409 SHIPPING_MANAGED_BY_CARDNEXUS`. Generate the shipping label from the web app instead.
    *
    * Returns the updated sale, in the same shape as `GET /v1/sales/{orderNumber}`.
    *
@@ -82,20 +84,18 @@ export class Sales extends APIResource {
    * Requires the `sales:write` scope.
    *
    * @param {string} orderNumber - The order reference, e.g. `OR-ASNBC-1`. Path parameter — not a query string.
-   * @param {SaleMarkShippedParams} body - The request body to send.
+   * @param {SaleMarkShippedParams} [body] - The request body to send.
    * @param {RequestOptions} [options] - Options to apply to the request, such as headers and an abort signal.
    * @returns {APIPromise<SaleDetail>} Sale marked shipped.
    *
    * @example
    * ```ts
-   * const saleDetail = await client.sales.markShipped('orderNumber', {
-   *   trackingNumber: 'xxxxx',
-   * });
+   * const saleDetail = await client.sales.markShipped('orderNumber');
    * ```
    */
   markShipped(
     orderNumber: string,
-    body: SaleMarkShippedParams,
+    body: SaleMarkShippedParams | null | undefined = {},
     options?: RequestOptions,
   ): APIPromise<SaleDetail> {
     return this._client.post(__scalarPath`/sales/${orderNumber}/mark-shipped`, { body, ...options });
@@ -242,6 +242,15 @@ export interface Sale {
    */
   completedAt: OffersAPI.DateString | null;
   /**
+   * The shipping the buyer paid for. `tracked` ships with a tracking number. `untracked` ships as a letter, which may have no tracking number.
+   */
+  shippingService: 'tracked' | 'untracked';
+  /**
+   * When this untracked order closes on its own: it completes and the seller is paid, unless a dispute is opened before then. `null` on tracked orders, and until an untracked order ships.
+   * @format date-time
+   */
+  untrackedCloseAt: OffersAPI.DateString | null;
+  /**
    * The currency every amount in this response is expressed in. Sales are in your selling currency; purchases are in the currency you paid.
    */
   currency: 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'SEK' | 'DKK' | 'NOK' | 'PLN' | 'HUF';
@@ -257,6 +266,10 @@ export interface Sale {
    * A monetary amount as a decimal in the currency's major unit paired with its currency code — `{ amount: 14.99, currency: "USD" }` means $14.99.
    */
   shippingAmount: AccountAPI.Money;
+  /**
+   * `true` when CardNexus manages shipping on this sale: the buyer paid CardNexus for the shipping, and you ship with a label generated on CardNexus — `POST /v1/sales/{orderNumber}/mark-shipped` returns `409 SHIPPING_MANAGED_BY_CARDNEXUS`. `false` when you ship the order yourself. Set when the order is placed: a later change to your shipping setting only applies to new orders.
+   */
+  shippingManagedByCardNexus: boolean;
   /**
    * The seller fee CardNexus charged on a sale.
    */
@@ -380,6 +393,15 @@ export interface SaleDetail {
    */
   completedAt: OffersAPI.DateString | null;
   /**
+   * The shipping the buyer paid for. `tracked` ships with a tracking number. `untracked` ships as a letter, which may have no tracking number.
+   */
+  shippingService: 'tracked' | 'untracked';
+  /**
+   * When this untracked order closes on its own: it completes and the seller is paid, unless a dispute is opened before then. `null` on tracked orders, and until an untracked order ships.
+   * @format date-time
+   */
+  untrackedCloseAt: OffersAPI.DateString | null;
+  /**
    * The currency every amount in this response is expressed in. Sales are in your selling currency; purchases are in the currency you paid.
    */
   currency: 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'SEK' | 'DKK' | 'NOK' | 'PLN' | 'HUF';
@@ -395,6 +417,10 @@ export interface SaleDetail {
    * A monetary amount as a decimal in the currency's major unit paired with its currency code — `{ amount: 14.99, currency: "USD" }` means $14.99.
    */
   shippingAmount: AccountAPI.Money;
+  /**
+   * `true` when CardNexus manages shipping on this sale: the buyer paid CardNexus for the shipping, and you ship with a label generated on CardNexus — `POST /v1/sales/{orderNumber}/mark-shipped` returns `409 SHIPPING_MANAGED_BY_CARDNEXUS`. `false` when you ship the order yourself. Set when the order is placed: a later change to your shipping setting only applies to new orders.
+   */
+  shippingManagedByCardNexus: boolean;
   /**
    * The seller fee CardNexus charged on a sale.
    */
@@ -624,13 +650,13 @@ export type OrderMetadata = Record<string, string>;
  */
 export interface OrderShipping {
   /**
-   * The carrier tracking number.
+   * The carrier tracking number. `null` when an untracked order shipped as a letter without one.
    */
-  trackingNumber: string;
+  trackingNumber: string | null;
   /**
-   * How the order travels: `parcel`, tracked by the carrier, or `letter`, an envelope tracked by the mail scans of its USPS Intelligent Mail barcode.
+   * How the order travels: `parcel`, tracked by the carrier, or `letter`, an envelope tracked by the mail scans of its USPS Intelligent Mail barcode. `null` when an untracked order shipped as a letter without a tracking number.
    */
-  type: 'parcel' | 'letter';
+  type: 'parcel' | 'letter' | null;
   /**
    * The carrier, e.g. `Colissimo`. `null` when unknown.
    */
@@ -779,12 +805,12 @@ export namespace SaleListResponse {
 
 export interface SaleMarkShippedParams {
   /**
-   * The tracking number — 5 to 50 characters: letters, digits, `-`, `_`. The carrier is detected automatically from the number. A USPS Intelligent Mail barcode (IMb) number ships the sale as a letter.
+   * The tracking number — 5 to 50 characters: letters, digits, `-`, `_`. The carrier is detected automatically from the number. A USPS Intelligent Mail barcode (IMb) number ships the sale as a letter. Required when the sale's `shippingService` is `tracked`; leave it out to ship an `untracked` sale as a letter without a tracking number.
    * @minLength 5
    * @maxLength 50
    * @pattern ^[a-zA-Z0-9_-]+$
    */
-  trackingNumber: string;
+  trackingNumber?: string;
   /**
    * A link to your own tracking page for this shipment, shown to the buyer. For a letter, this is the only tracking page the buyer sees. Must be an `https` URL.
    * @format uri

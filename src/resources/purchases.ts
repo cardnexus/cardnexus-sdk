@@ -100,6 +100,15 @@ export interface Purchase {
    */
   completedAt: OffersAPI.DateString | null;
   /**
+   * The shipping the buyer paid for. `tracked` ships with a tracking number. `untracked` ships as a letter, which may have no tracking number.
+   */
+  shippingService: 'tracked' | 'untracked';
+  /**
+   * When this untracked order closes on its own: it completes and the seller is paid, unless a dispute is opened before then. `null` on tracked orders, and until an untracked order ships.
+   * @format date-time
+   */
+  untrackedCloseAt: OffersAPI.DateString | null;
+  /**
    * The currency every amount in this response is expressed in. Sales are in your selling currency; purchases are in the currency you paid.
    */
   currency: 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'SEK' | 'DKK' | 'NOK' | 'PLN' | 'HUF';
@@ -115,6 +124,10 @@ export interface Purchase {
    * A monetary amount as a decimal in the currency's major unit paired with its currency code — `{ amount: 14.99, currency: "USD" }` means $14.99.
    */
   shippingAmount: AccountAPI.Money;
+  /**
+   * `true` when CardNexus manages shipping on this purchase: the shipping you paid went to CardNexus, and the seller ships with a label generated on CardNexus. `false` when the seller ships the order themselves. Set when the order is placed and never changes afterwards.
+   */
+  shippingManagedByCardNexus: boolean;
   /**
    * A monetary amount as a decimal in the currency's major unit paired with its currency code — `{ amount: 14.99, currency: "USD" }` means $14.99.
    */
@@ -171,6 +184,15 @@ export interface PurchaseDetail {
    */
   completedAt: OffersAPI.DateString | null;
   /**
+   * The shipping the buyer paid for. `tracked` ships with a tracking number. `untracked` ships as a letter, which may have no tracking number.
+   */
+  shippingService: 'tracked' | 'untracked';
+  /**
+   * When this untracked order closes on its own: it completes and the seller is paid, unless a dispute is opened before then. `null` on tracked orders, and until an untracked order ships.
+   * @format date-time
+   */
+  untrackedCloseAt: OffersAPI.DateString | null;
+  /**
    * The currency every amount in this response is expressed in. Sales are in your selling currency; purchases are in the currency you paid.
    */
   currency: 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'SEK' | 'DKK' | 'NOK' | 'PLN' | 'HUF';
@@ -186,6 +208,10 @@ export interface PurchaseDetail {
    * A monetary amount as a decimal in the currency's major unit paired with its currency code — `{ amount: 14.99, currency: "USD" }` means $14.99.
    */
   shippingAmount: AccountAPI.Money;
+  /**
+   * `true` when CardNexus manages shipping on this purchase: the shipping you paid went to CardNexus, and the seller ships with a label generated on CardNexus. `false` when the seller ships the order themselves. Set when the order is placed and never changes afterwards.
+   */
+  shippingManagedByCardNexus: boolean;
   /**
    * A monetary amount as a decimal in the currency's major unit paired with its currency code — `{ amount: 14.99, currency: "USD" }` means $14.99.
    */

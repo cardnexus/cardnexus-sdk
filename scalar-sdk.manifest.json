@@ -1,7 +1,7 @@
 {
   "name": "CardNexusPublicApi",
   "slug": "cardNexusPublicApi",
-  "generatorVersion": "0.35.2",
+  "generatorVersion": "0.36.1",
   "servers": [
     "https://public-api.cardnexus.com/v1"
   ],
@@ -8004,8 +8004,16 @@
             "required": true,
             "deprecated": false,
             "type": {
-              "kind": "primitive",
-              "type": "string"
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "primitive",
+                  "type": "string"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
             }
           },
           {
@@ -8014,18 +8022,26 @@
             "required": true,
             "deprecated": false,
             "type": {
-              "kind": "enum",
-              "values": [
-                "parcel",
-                "letter"
-              ],
-              "names": [
-                "Parcel",
-                "Letter"
-              ],
-              "deprecations": [
-                false,
-                false
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "enum",
+                  "values": [
+                    "parcel",
+                    "letter"
+                  ],
+                  "names": [
+                    "Parcel",
+                    "Letter"
+                  ],
+                  "deprecations": [
+                    false,
+                    false
+                  ]
+                },
+                {
+                  "kind": "null"
+                }
               ]
             }
           },
@@ -8581,6 +8597,8 @@
           "shippedAt": "2026-06-14T09:12:00.000Z",
           "deliveredAt": null,
           "completedAt": null,
+          "shippingService": "tracked",
+          "untrackedCloseAt": null,
           "currency": "EUR",
           "items": [
             {
@@ -8612,6 +8630,7 @@
             "amount": 3.5,
             "currency": "EUR"
           },
+          "shippingManagedByCardNexus": false,
           "sellerFee": {
             "percentage": 5,
             "amount": {
@@ -8773,6 +8792,57 @@
           {
             "name": "completedAt",
             "publicName": "completedAt",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "2024-08-14T10:23:11.000Z"
+            },
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "name": "date_string"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "shippingService",
+            "publicName": "shippingService",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "tracked"
+            },
+            "type": {
+              "kind": "enum",
+              "values": [
+                "tracked",
+                "untracked"
+              ],
+              "names": [
+                "Tracked",
+                "Untracked"
+              ],
+              "deprecations": [
+                false,
+                false
+              ]
+            }
+          },
+          {
+            "name": "untrackedCloseAt",
+            "publicName": "untrackedCloseAt",
             "required": true,
             "deprecated": false,
             "extensions": {
@@ -9103,6 +9173,16 @@
             }
           },
           {
+            "name": "shippingManagedByCardNexus",
+            "publicName": "shippingManagedByCardNexus",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "boolean"
+            }
+          },
+          {
             "name": "sellerFee",
             "publicName": "sellerFee",
             "required": true,
@@ -9263,6 +9343,8 @@
           "shippedAt": "2026-06-14T09:12:00.000Z",
           "deliveredAt": null,
           "completedAt": null,
+          "shippingService": "tracked",
+          "untrackedCloseAt": null,
           "currency": "EUR",
           "items": [
             {
@@ -9294,6 +9376,7 @@
             "amount": 3.5,
             "currency": "EUR"
           },
+          "shippingManagedByCardNexus": false,
           "sellerFee": {
             "percentage": 5,
             "amount": {
@@ -9488,6 +9571,57 @@
             }
           },
           {
+            "name": "shippingService",
+            "publicName": "shippingService",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "tracked"
+            },
+            "type": {
+              "kind": "enum",
+              "values": [
+                "tracked",
+                "untracked"
+              ],
+              "names": [
+                "Tracked",
+                "Untracked"
+              ],
+              "deprecations": [
+                false,
+                false
+              ]
+            }
+          },
+          {
+            "name": "untrackedCloseAt",
+            "publicName": "untrackedCloseAt",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "2024-08-14T10:23:11.000Z"
+            },
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "name": "date_string"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
             "name": "currency",
             "publicName": "currency",
             "required": true,
@@ -9793,6 +9927,16 @@
             "type": {
               "kind": "ref",
               "name": "money"
+            }
+          },
+          {
+            "name": "shippingManagedByCardNexus",
+            "publicName": "shippingManagedByCardNexus",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "boolean"
             }
           },
           {
@@ -10026,6 +10170,8 @@
           "shippedAt": "2026-06-14T09:12:00.000Z",
           "deliveredAt": "2026-06-17T11:40:00.000Z",
           "completedAt": null,
+          "shippingService": "tracked",
+          "untrackedCloseAt": null,
           "currency": "EUR",
           "items": [
             {
@@ -10055,6 +10201,7 @@
             "amount": 3.5,
             "currency": "EUR"
           },
+          "shippingManagedByCardNexus": false,
           "buyerFee": {
             "amount": 0.6,
             "currency": "EUR"
@@ -10222,6 +10369,57 @@
             }
           },
           {
+            "name": "shippingService",
+            "publicName": "shippingService",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "tracked"
+            },
+            "type": {
+              "kind": "enum",
+              "values": [
+                "tracked",
+                "untracked"
+              ],
+              "names": [
+                "Tracked",
+                "Untracked"
+              ],
+              "deprecations": [
+                false,
+                false
+              ]
+            }
+          },
+          {
+            "name": "untrackedCloseAt",
+            "publicName": "untrackedCloseAt",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "2024-08-14T10:23:11.000Z"
+            },
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "name": "date_string"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
             "name": "currency",
             "publicName": "currency",
             "required": true,
@@ -10315,6 +10513,16 @@
             "type": {
               "kind": "ref",
               "name": "money"
+            }
+          },
+          {
+            "name": "shippingManagedByCardNexus",
+            "publicName": "shippingManagedByCardNexus",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "boolean"
             }
           },
           {
@@ -10427,6 +10635,8 @@
           "shippedAt": "2026-06-14T09:12:00.000Z",
           "deliveredAt": "2026-06-17T11:40:00.000Z",
           "completedAt": null,
+          "shippingService": "tracked",
+          "untrackedCloseAt": null,
           "currency": "EUR",
           "items": [
             {
@@ -10456,6 +10666,7 @@
             "amount": 3.5,
             "currency": "EUR"
           },
+          "shippingManagedByCardNexus": false,
           "buyerFee": {
             "amount": 0.6,
             "currency": "EUR"
@@ -10645,6 +10856,57 @@
             }
           },
           {
+            "name": "shippingService",
+            "publicName": "shippingService",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "tracked"
+            },
+            "type": {
+              "kind": "enum",
+              "values": [
+                "tracked",
+                "untracked"
+              ],
+              "names": [
+                "Tracked",
+                "Untracked"
+              ],
+              "deprecations": [
+                false,
+                false
+              ]
+            }
+          },
+          {
+            "name": "untrackedCloseAt",
+            "publicName": "untrackedCloseAt",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "2024-08-14T10:23:11.000Z"
+            },
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "name": "date_string"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
             "name": "currency",
             "publicName": "currency",
             "required": true,
@@ -10738,6 +11000,16 @@
             "type": {
               "kind": "ref",
               "name": "money"
+            }
+          },
+          {
+            "name": "shippingManagedByCardNexus",
+            "publicName": "shippingManagedByCardNexus",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "boolean"
             }
           },
           {
@@ -18435,6 +18707,7 @@
         "notes",
         "location",
         "tags",
+        "photos",
         "count"
       ],
       "publicBodyParams": [
@@ -18448,6 +18721,7 @@
         "notes",
         "location",
         "tags",
+        "photos",
         "count"
       ],
       "bodyParamDetails": [
@@ -18489,6 +18763,10 @@
         },
         {
           "name": "tags",
+          "required": false
+        },
+        {
+          "name": "photos",
           "required": false
         },
         {
@@ -23754,7 +24032,7 @@
       "bodyParamDetails": [
         {
           "name": "trackingNumber",
-          "required": true
+          "required": false
         },
         {
           "name": "trackingUrl",
@@ -23790,7 +24068,7 @@
             "encoding": "json"
           }
         ],
-        "required": true,
+        "required": false,
         "publicName": "body",
         "publicIdentifier": "body"
       },
@@ -25488,6 +25766,13 @@
       "source": "webhook",
       "method": "POST",
       "path": "message.received"
+    },
+    {
+      "event": "account.updated",
+      "name": "AccountUpdated",
+      "source": "webhook",
+      "method": "POST",
+      "path": "account.updated"
     },
     {
       "event": "balance.updated",

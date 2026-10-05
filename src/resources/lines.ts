@@ -154,11 +154,13 @@ export class Lines extends APIResource {
   }
 
   /**
-   * Changes a single inventory line — its quantity, condition, language, finish, grading, `customId`, `comment`, `notes`, `location`, or `tags`. Send only the fields you want to change.
+   * Changes a single inventory line — its quantity, condition, language, finish, grading, `customId`, `comment`, `notes`, `location`, `tags`, or `photos`. Send only the fields you want to change. A field this endpoint does not list is rejected with `BAD_REQUEST`.
    *
    * `finish` and `language` must be ones the product exists in — see the product's `finishes` and `languages` on `GET /v1/products/{productId}`. A finish the product doesn't come in is rejected with `INVALID_FINISH`; a language it doesn't come in with `INVALID_LANGUAGE`.
    *
    * Quantity takes either `{"set": n}` (new total) or `{"adjust": n}` (signed change). A change that would leave zero or fewer cards is rejected with `INSUFFICIENT_QUANTITY` — use `DELETE /v1/inventory/{inventoryId}` to remove a line.
+   *
+   * `photos` takes the `url` values of the photos to keep, from the line's `photos`, in the order you want them: a photo you leave out is removed, and `[]` removes every photo. A URL that is not on the line returns `PHOTO_NOT_FOUND`. New photos are uploaded with `PUT /v1/inventory/{inventoryId}/media`.
    *
    * `location` takes a location name, or `null` to move the line to no location. `tags` takes `{"set": [...]}` (replace the whole set, `[]` clears), `{"add": [...]}` (add, keep the rest), or `{"remove": [...]}` (remove only those). `location` and `tags` names must already exist — a name that matches none of your labels returns `LOCATION_NOT_FOUND` or `TAG_NOT_FOUND`. `notes` is your private note; pass `null` to remove it.
    *
@@ -443,7 +445,7 @@ export namespace LineListResponse {
      */
     listing: Data.Listing | null;
     /**
-     * Photos attached to this line, in the order you set them with `PUT /v1/inventory/{inventoryId}/media`. Buyers see them on your Marketplace listing. Empty when there are none.
+     * Photos attached to this line, in the order you set them. Buyers see them on your Marketplace listing. Empty when there are none.
      */
     photos: Array<Data.Photo>;
     /**
@@ -716,7 +718,7 @@ export namespace LineCreateResponse {
      */
     listing: Created.Listing | null;
     /**
-     * Photos attached to this line, in the order you set them with `PUT /v1/inventory/{inventoryId}/media`. Buyers see them on your Marketplace listing. Empty when there are none.
+     * Photos attached to this line, in the order you set them. Buyers see them on your Marketplace listing. Empty when there are none.
      */
     photos: Array<Created.Photo>;
     /**
@@ -2166,7 +2168,6 @@ export namespace LineSearchParams {
       variant?: Filters.Variant;
       finish?: Filters.Finish;
       finishes?: Filters.Finishes;
-      formats?: Filters.Formats;
       type?: Filters.Type;
       attribute?: Filters.Attribute;
       race?: Filters.Race;
@@ -2282,21 +2283,6 @@ export namespace LineSearchParams {
       export interface Finishes {
         op: 'and' | 'or';
         values: Array<'Standard'>;
-      }
-
-      export interface Formats {
-        op: 'and' | 'or';
-        values: Array<
-          | 'Common Charity'
-          | 'Duel Links'
-          | 'Edison'
-          | 'GOAT'
-          | 'Master Duel'
-          | 'OCG'
-          | 'OCG GOAT'
-          | 'Speed Duel'
-          | 'TCG'
-        >;
       }
 
       export interface Type {
@@ -5227,7 +5213,7 @@ export namespace LineSearchResponse {
      */
     listing: Data.Listing | null;
     /**
-     * Photos attached to this line, in the order you set them with `PUT /v1/inventory/{inventoryId}/media`. Buyers see them on your Marketplace listing. Empty when there are none.
+     * Photos attached to this line, in the order you set them. Buyers see them on your Marketplace listing. Empty when there are none.
      */
     photos: Array<Data.Photo>;
     /**
@@ -5354,7 +5340,7 @@ export interface LineRetrieveResponse {
    */
   listing: LineRetrieveResponse.Listing | null;
   /**
-   * Photos attached to this line, in the order you set them with `PUT /v1/inventory/{inventoryId}/media`. Buyers see them on your Marketplace listing. Empty when there are none.
+   * Photos attached to this line, in the order you set them. Buyers see them on your Marketplace listing. Empty when there are none.
    */
   photos: Array<LineRetrieveResponse.Photo>;
   /**
@@ -5471,6 +5457,11 @@ export interface LineUpdateParams {
    * How to change the line's tags: `{"set": [...]}` replaces the whole set (`{"set": []}` clears them), `{"add": [...]}` adds without removing others, `{"remove": [...]}` removes only the ones you name. Choose exactly one. Every name must match one of your existing tags.
    */
   tags?: LineUpdateParams.Tags | LineUpdateParams.Tags2 | LineUpdateParams.Tags3;
+  /**
+   * The photos to keep on the line, as `url` values from its `photos`, in the order you want them. A photo you leave out is removed; `[]` removes every photo. New photos are uploaded with `PUT /v1/inventory/{inventoryId}/media`.
+   * @maxItems 10
+   */
+  photos?: Array<string>;
   /**
    * Apply the attribute changes to only this many cards. When `count` is lower than the line's quantity, the line splits: `count` cards take the changes and come back as `line`, the rest stays unchanged and comes back as `remainder`. Cannot be combined with `quantity`.
    * @minimum 1
@@ -5633,7 +5624,7 @@ export namespace LineUpdateResponse {
      */
     listing: Line.Listing | null;
     /**
-     * Photos attached to this line, in the order you set them with `PUT /v1/inventory/{inventoryId}/media`. Buyers see them on your Marketplace listing. Empty when there are none.
+     * Photos attached to this line, in the order you set them. Buyers see them on your Marketplace listing. Empty when there are none.
      */
     photos: Array<Line.Photo>;
     /**
@@ -5740,7 +5731,7 @@ export namespace LineUpdateResponse {
      */
     listing: Remainder.Listing | null;
     /**
-     * Photos attached to this line, in the order you set them with `PUT /v1/inventory/{inventoryId}/media`. Buyers see them on your Marketplace listing. Empty when there are none.
+     * Photos attached to this line, in the order you set them. Buyers see them on your Marketplace listing. Empty when there are none.
      */
     photos: Array<Remainder.Photo>;
     /**
@@ -5866,7 +5857,7 @@ export interface LineSetMediaResponse {
    */
   listing: LineSetMediaResponse.Listing | null;
   /**
-   * Photos attached to this line, in the order you set them with `PUT /v1/inventory/{inventoryId}/media`. Buyers see them on your Marketplace listing. Empty when there are none.
+   * Photos attached to this line, in the order you set them. Buyers see them on your Marketplace listing. Empty when there are none.
    */
   photos: Array<LineSetMediaResponse.Photo>;
   /**
