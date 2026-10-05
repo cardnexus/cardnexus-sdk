@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "The CardNexus Public API provides programmatic access to the CardNexus marketplace and catalogue — games, expansions, and products across Magic: The Gathering, Pokémon, One Piece, and the other games CardNexus supports, plus your own inventory, listings, and orders.",
   "author": "CardNexus Public API",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cardnexus/cardnexus-sdk.git"
+  },
   "type": "module",
   "sideEffects": false,
   "main": "./dist/cjs/index.js",

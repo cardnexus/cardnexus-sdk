@@ -2166,7 +2166,6 @@ export namespace LineSearchParams {
       variant?: Filters.Variant;
       finish?: Filters.Finish;
       finishes?: Filters.Finishes;
-      formats?: Filters.Formats;
       type?: Filters.Type;
       attribute?: Filters.Attribute;
       race?: Filters.Race;
@@ -2282,21 +2281,6 @@ export namespace LineSearchParams {
       export interface Finishes {
         op: 'and' | 'or';
         values: Array<'Standard'>;
-      }
-
-      export interface Formats {
-        op: 'and' | 'or';
-        values: Array<
-          | 'Common Charity'
-          | 'Duel Links'
-          | 'Edison'
-          | 'GOAT'
-          | 'Master Duel'
-          | 'OCG'
-          | 'OCG GOAT'
-          | 'Speed Duel'
-          | 'TCG'
-        >;
       }
 
       export interface Type {
