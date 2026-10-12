@@ -1,7 +1,7 @@
 {
   "name": "CardNexusPublicApi",
   "slug": "cardNexusPublicApi",
-  "generatorVersion": "0.36.1",
+  "generatorVersion": "0.36.3",
   "servers": [
     "https://public-api.cardnexus.com/v1"
   ],

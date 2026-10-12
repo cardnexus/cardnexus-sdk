@@ -151,7 +151,7 @@ export namespace ItemCreateResponse {
      */
     listingId: string;
     /**
-     * Why the item was rejected. `LISTING_NOT_FOUND`: no such listing, or it is no longer for sale. `OWN_LISTING`: the listing is yours — you cannot buy from yourself. `INSUFFICIENT_QUANTITY`: the listing has fewer units for sale than you asked for. `QUANTITY_LIMIT_EXCEEDED`: the seller limits how many units of one listing a buyer can order, and the add would go past that limit — `data.max` carries the seller's limit. `REGION_MISMATCH`: the seller is in a different marketplace region than your cart — a cart holds items from one region (`eu` or `na`) at a time. `SELLER_DOES_NOT_SHIP_TO_COUNTRY`: the seller does not ship to your delivery country. `SELLER_UNAVAILABLE`: the seller cannot take orders right now. `BUYER_EXCLUDED`: the seller does not sell to you.
+     * Why the item was rejected. `LISTING_NOT_FOUND`: no such listing, or it is no longer for sale. `OWN_LISTING`: the listing is yours — you cannot buy from yourself. `INSUFFICIENT_QUANTITY`: the listing has fewer units for sale than you asked for. `QUANTITY_LIMIT_EXCEEDED`: the seller limits how many units of one listing a buyer can order, and the add would go past that limit — `data.max` carries the seller's limit. `REGION_MISMATCH`: the seller is in a different marketplace region than your cart — a cart holds items from one region (`eu` or `na`) at a time. `SELLER_DOES_NOT_SHIP_TO_COUNTRY`: the seller does not ship to your delivery country. `CROSS_REGION_PURCHASES_DISABLED`: the seller is in a different marketplace region than your delivery country, and purchases across regions are currently disabled. `SELLER_UNAVAILABLE`: the seller cannot take orders right now. `BUYER_EXCLUDED`: the seller does not sell to you.
      */
     code:
       | 'LISTING_NOT_FOUND'
@@ -160,6 +160,7 @@ export namespace ItemCreateResponse {
       | 'QUANTITY_LIMIT_EXCEEDED'
       | 'REGION_MISMATCH'
       | 'SELLER_DOES_NOT_SHIP_TO_COUNTRY'
+      | 'CROSS_REGION_PURCHASES_DISABLED'
       | 'SELLER_UNAVAILABLE'
       | 'BUYER_EXCLUDED';
     /**

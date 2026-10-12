@@ -206,7 +206,9 @@ export class BulkOperations extends APIResource {
   }
 
   /**
-   * Changes up to 200 inventory lines in one call, without a file round-trip. Each item names one line — by `inventoryId` or by `customId` — and carries the changes to apply: quantity, condition, language, finish, comment, notes, location, or tags. Send only the fields you want to change. Each line can appear in only one item per call; further items naming the same line are rejected with `INVALID_ITEM`. The same change rules as `PATCH /v1/inventory/{inventoryId}` apply, including `count` splits, merging into an identical line, the `location` name (or `null` to clear), and the `tags` `{"set"|"add"|"remove"}` change. `location` and `tags` names must already exist, or the item is rejected with `LOCATION_NOT_FOUND` or `TAG_NOT_FOUND`.
+   * Changes up to 200 inventory lines in one call, without a file round-trip. Each item names one line — by `inventoryId` or by `customId` — and carries the changes to apply: quantity, condition, language, finish, comment, notes, location, tags, or listing. Send only the fields you want to change. Each line can appear in only one item per call; further items naming the same line are rejected with `INVALID_ITEM`. The same change rules as `PATCH /v1/inventory/{inventoryId}` apply, including `count` splits, merging into an identical line, the `location` name (or `null` to clear), and the `tags` `{"set"|"add"|"remove"}` change. `location` and `tags` names must already exist, or the item is rejected with `LOCATION_NOT_FOUND` or `TAG_NOT_FOUND`.
+   *
+   * `listing` sets the per-card price: it puts a line up for sale, or changes the price of a line that is already for sale. `listing: null` takes the line off sale. The price must be in your seller currency, or the item is rejected with `CURRENCY_MISMATCH`. Putting a line up for sale is rejected with `SELLER_ACCOUNT_NOT_ACTIVE` when your seller account is suspended or banned; vacation mode does not block it.
    *
    * Items are checked one by one. Items that fail — unknown line, quantity underflow, invalid `count` — come back in `results` with `status: "error"` and do not block the rest. All items that pass are applied together: either every one of them takes effect, or — when they collide with each other or with another of your lines — none do and the call fails with `CONFLICT`.
    *
@@ -1201,6 +1203,7 @@ export namespace BulkOperationExportParams {
             | 'Hero'
             | 'Hunny'
             | 'Hyena'
+            | 'Hyperia City'
             | 'Illusion'
             | 'Inventor'
             | 'Item'
@@ -5201,6 +5204,10 @@ export namespace BulkOperationUpdateParams {
      */
     tags?: Item.Tags | Item.Tags2 | Item.Tags3;
     /**
+     * Put the line up for sale on the Marketplace at this price, or change the price of a line that is already for sale. Pass `null` to take the line off sale. With `count`, only those cards take the new listing.
+     */
+    listing?: Item.Listing | null;
+    /**
      * Apply the attribute changes to only this many cards. When `count` is lower than the line's quantity, the line splits: `count` cards take the changes, the rest stays unchanged. Needs at least one attribute change and cannot be combined with `quantity`.
      * @minimum 1
      * @maximum 9007199254740991
@@ -5252,6 +5259,23 @@ export namespace BulkOperationUpdateParams {
        */
       remove: Array<string>;
     }
+
+    export interface Listing {
+      /**
+       * The per-card price. The currency must match your seller currency.
+       */
+      price: Listing.Price;
+    }
+
+    export namespace Listing {
+      export interface Price {
+        /**
+         * Decimal amount in the currency's major unit (e.g. `5.23` for €5.23). 2 decimal places for EUR/USD/GBP/CHF/CAD/AUD.
+         */
+        amount: number;
+        currency: 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'SEK' | 'DKK' | 'NOK' | 'PLN' | 'HUF';
+      }
+    }
   }
 }
 
@@ -5292,7 +5316,7 @@ export namespace BulkOperationUpdateResponse {
      */
     status: 'error';
     /**
-     * Why the item was rejected. `NOT_FOUND`: no live line of yours matches the item's `inventoryId` or `customId`. `INSUFFICIENT_QUANTITY`: the quantity change would leave zero or fewer cards. `INVALID_COUNT`: `count` is higher than the line's quantity. `INVALID_ITEM`: the item's fields cannot be applied together, or another item in the call already changes the same line (the reason is in `data`). `INVALID_FINISH`: the product does not exist in this finish. `INVALID_LANGUAGE`: the product does not exist in this language. `LOCATION_NOT_FOUND`: the `location` name matches none of your locations. `TAG_NOT_FOUND`: a `tags` name matches none of your tags.
+     * Why the item was rejected. `NOT_FOUND`: no live line of yours matches the item's `inventoryId` or `customId`. `INSUFFICIENT_QUANTITY`: the quantity change would leave zero or fewer cards. `INVALID_COUNT`: `count` is higher than the line's quantity. `INVALID_ITEM`: the item's fields cannot be applied together, or another item in the call already changes the same line (the reason is in `data`). `INVALID_FINISH`: the product does not exist in this finish. `INVALID_LANGUAGE`: the product does not exist in this language. `LOCATION_NOT_FOUND`: the `location` name matches none of your locations. `TAG_NOT_FOUND`: a `tags` name matches none of your tags. `SELLER_ACCOUNT_NOT_ACTIVE`: the item sets a `listing` on a line that is not for sale, and your seller account is suspended or banned. `CURRENCY_MISMATCH`: the `listing` price is not in your seller currency (`data` carries the `provided` and `expected` currencies).
      */
     code:
       | 'NOT_FOUND'
@@ -5302,7 +5326,9 @@ export namespace BulkOperationUpdateResponse {
       | 'INVALID_FINISH'
       | 'INVALID_LANGUAGE'
       | 'LOCATION_NOT_FOUND'
-      | 'TAG_NOT_FOUND';
+      | 'TAG_NOT_FOUND'
+      | 'SELLER_ACCOUNT_NOT_ACTIVE'
+      | 'CURRENCY_MISMATCH';
     /**
      * The values that caused the rejection, e.g. the line's available quantity.
      */
