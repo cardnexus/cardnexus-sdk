@@ -58,7 +58,7 @@ Pass credentials to the generated client constructor. Environment variables are 
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `bearerAuth` | `string \| provider` | - | CardNexus API key. Mint one from cardnexus.com → Settings → API Keys. Format: `cnk_live_` followed by a random string. Defaults to BEARER_AUTH. |
+| `bearerAuth` | `string \| AuthTokenProvider` | - | CardNexus API key. Mint one from cardnexus.com → Settings → API Keys. Format: `cnk_live_` followed by a random string. Defaults to BEARER_AUTH. |
 
 Declared schemes:
 
