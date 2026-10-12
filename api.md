@@ -339,7 +339,7 @@ const vacation = await client.account.vacation.list();
 
 #### Set your vacation mode
 
-Turns vacation mode on or off. Turning it on hides your listings from the Marketplace and stops new orders while keeping your inventory; turning it off restores them.
+Turns vacation mode on or off. Turning it on hides your listings from the Marketplace and stops new orders; you can still create, change and remove listings and work on your inventory, and turning it off shows them again.
 
 The change takes effect immediately and returns the resulting state.
 
@@ -1239,7 +1239,9 @@ const bulkOperation = await client.bulkOperations.export({
 
 ### Update inventory lines in bulk
 
-Changes up to 200 inventory lines in one call, without a file round-trip. Each item names one line — by `inventoryId` or by `customId` — and carries the changes to apply: quantity, condition, language, finish, comment, notes, location, or tags. Send only the fields you want to change. Each line can appear in only one item per call; further items naming the same line are rejected with `INVALID_ITEM`. The same change rules as `PATCH /v1/inventory/{inventoryId}` apply, including `count` splits, merging into an identical line, the `location` name (or `null` to clear), and the `tags` `{"set"|"add"|"remove"}` change. `location` and `tags` names must already exist, or the item is rejected with `LOCATION_NOT_FOUND` or `TAG_NOT_FOUND`.
+Changes up to 200 inventory lines in one call, without a file round-trip. Each item names one line — by `inventoryId` or by `customId` — and carries the changes to apply: quantity, condition, language, finish, comment, notes, location, tags, or listing. Send only the fields you want to change. Each line can appear in only one item per call; further items naming the same line are rejected with `INVALID_ITEM`. The same change rules as `PATCH /v1/inventory/{inventoryId}` apply, including `count` splits, merging into an identical line, the `location` name (or `null` to clear), and the `tags` `{"set"|"add"|"remove"}` change. `location` and `tags` names must already exist, or the item is rejected with `LOCATION_NOT_FOUND` or `TAG_NOT_FOUND`.
+
+`listing` sets the per-card price: it puts a line up for sale, or changes the price of a line that is already for sale. `listing: null` takes the line off sale. The price must be in your seller currency, or the item is rejected with `CURRENCY_MISMATCH`. Putting a line up for sale is rejected with `SELLER_ACCOUNT_NOT_ACTIVE` when your seller account is suspended or banned; vacation mode does not block it.
 
 Items are checked one by one. Items that fail — unknown line, quantity underflow, invalid `count` — come back in `results` with `status: "error"` and do not block the rest. All items that pass are applied together: either every one of them takes effect, or — when they collide with each other or with another of your lines — none do and the call fails with `CONFLICT`.
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/cardnexus/cardnexus-sdk/compare/v0.2.0...v0.2.1) (2026-10-12)
+
+
+### Chores
+
+* **api:** regenerate SDK ([2a9e638](https://github.com/cardnexus/cardnexus-sdk/commit/2a9e638c6325c434e5a5f6b45f68fd71cc2a1e79))
+
 ## [0.2.0](https://github.com/cardnexus/cardnexus-sdk/compare/v0.1.0...v0.2.0) (2026-10-05)
 
 

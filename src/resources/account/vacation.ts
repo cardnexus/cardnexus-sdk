@@ -24,7 +24,7 @@ export class Vacation extends APIResource {
   }
 
   /**
-   * Turns vacation mode on or off. Turning it on hides your listings from the Marketplace and stops new orders while keeping your inventory; turning it off restores them.
+   * Turns vacation mode on or off. Turning it on hides your listings from the Marketplace and stops new orders; you can still create, change and remove listings and work on your inventory, and turning it off shows them again.
    *
    * The change takes effect immediately and returns the resulting state.
    *
@@ -52,7 +52,7 @@ export interface VacationListResponse {
    */
   enabled: boolean;
   /**
-   * Your seller account state. `active` means you're selling normally; `paused` means vacation mode is on and your listings are hidden; `suspended` and `banned` are set by CardNexus and can't be changed here.
+   * Your seller account state. `active` means you're selling normally; `paused` means vacation mode is on and your listings are hidden while you can still manage your inventory and listings; `suspended` and `banned` are set by CardNexus and can't be changed here.
    */
   status: 'active' | 'paused' | 'suspended' | 'banned';
   /**
@@ -80,7 +80,7 @@ export interface VacationSetResponse {
    */
   enabled: boolean;
   /**
-   * Your seller account state. `active` means you're selling normally; `paused` means vacation mode is on and your listings are hidden; `suspended` and `banned` are set by CardNexus and can't be changed here.
+   * Your seller account state. `active` means you're selling normally; `paused` means vacation mode is on and your listings are hidden while you can still manage your inventory and listings; `suspended` and `banned` are set by CardNexus and can't be changed here.
    */
   status: 'active' | 'paused' | 'suspended' | 'banned';
   /**

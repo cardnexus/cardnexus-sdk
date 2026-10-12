@@ -1327,6 +1327,7 @@ export namespace LineSearchParams {
           | 'Hero'
           | 'Hunny'
           | 'Hyena'
+          | 'Hyperia City'
           | 'Illusion'
           | 'Inventor'
           | 'Item'

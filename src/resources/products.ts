@@ -2495,6 +2495,7 @@ export namespace ProductSearchParams {
           | 'Hero'
           | 'Hunny'
           | 'Hyena'
+          | 'Hyperia City'
           | 'Illusion'
           | 'Inventor'
           | 'Item'
