@@ -284,6 +284,7 @@ const cases: {
         name: 'x',
         printNumber: 'ST02-44',
         nameSlug: 'x',
+        nameSlugs: ['charizard-ex'],
         cardmarketId: [0],
         tcgplayerId: [0],
         productType: {
@@ -304,6 +305,8 @@ const cases: {
         },
         sortBy: 'printNumber',
         sortDirection: 'asc',
+        cursor: '',
+        includeTotal: false,
       });
     },
   },
@@ -343,6 +346,9 @@ const cases: {
         finish: ['Standard'],
         region: 'eu',
         deliveryCountry: 'deliveryCountry',
+        graded: true,
+        sortBy: 'price',
+        sortDirection: 'asc',
       });
     },
   },
@@ -676,6 +682,10 @@ const cases: {
       const line = await client.lines.search({
         offset: 0,
         limit: 50,
+        includeTotal: false,
+        includeMarket: false,
+        changePeriod: 'week',
+        weightByQuantity: false,
       });
     },
   },
@@ -697,6 +707,8 @@ const cases: {
         customIdPrefix: 'x',
         customIdContains: 'x',
         commentContains: 'x',
+        inventoryIds: ['x'],
+        customIds: ['x'],
         productIds: [0],
         expansionId: [0],
         tags: {
@@ -738,8 +750,29 @@ const cases: {
           game: 'sorcery',
           filters: {},
         },
+        updatedSince: '2024-01-01T00:00:00.000Z',
+        marketPrice: {
+          min: 0,
+          max: 0,
+        },
+        hasMarketPrice: false,
+        priceVsMarket: {
+          minPercent: 0,
+          maxPercent: 0,
+        },
+        priceCheckGroup: 'way-above',
+        marketChange: {
+          period: 'week',
+          minPercent: 0,
+          maxPercent: 0,
+        },
+        cursor: 'x',
+        includeTotal: false,
+        includeMarket: false,
         sortBy: 'name',
         sortDirection: 'asc',
+        changePeriod: 'week',
+        weightByQuantity: false,
       });
     },
   },
@@ -913,6 +946,8 @@ const cases: {
           customIdPrefix: 'x',
           customIdContains: 'x',
           commentContains: 'x',
+          inventoryIds: ['x'],
+          customIds: ['x'],
           productIds: [0],
           expansionId: [42, 118],
           tags: {
@@ -1293,7 +1328,9 @@ const cases: {
     method: 'GET',
     path: '/lists/{listId}',
     run: async () => {
-      const list = await client.lists.retrieve('listId');
+      const list = await client.lists.retrieve('listId', {
+        includeItems: true,
+      });
     },
   },
 
@@ -1382,6 +1419,7 @@ const cases: {
     run: async () => {
       const sale = await client.sales.list({
         limit: 50,
+        includeTotal: false,
       });
     },
   },
@@ -1398,7 +1436,15 @@ const cases: {
         status: ['shipped'],
         placedFrom: '2024-08-14T10:23:11.000Z',
         placedTo: '2024-08-14T10:23:11.000Z',
+        includeTotal: false,
+        needsAction: true,
+        dispute: 'any',
+        shipByBefore: '2024-08-14T10:23:11.000Z',
+        orderNumberPrefix: 'orderNumberPrefix',
         metadata: {},
+        shipByAfter: '2024-01-01T00:00:00.000Z',
+        buyer: 'buyer',
+        sort: 'newest',
       });
     },
   },
@@ -1431,6 +1477,7 @@ const cases: {
       const saleDetail = await client.sales.markShipped('orderNumber', {
         trackingNumber: 'xxxxx',
         trackingUrl: 'https://track.sortswift.example/l/00310110084032371774',
+        signatureConfirmed: false,
         metadata: { fulfillment_stage: 'packed', picked_by: null },
       });
     },
@@ -1478,6 +1525,7 @@ const cases: {
     run: async () => {
       const purchase = await client.purchases.list({
         limit: 50,
+        includeTotal: false,
       });
     },
   },
@@ -1494,6 +1542,12 @@ const cases: {
         status: ['shipped'],
         placedFrom: '2024-08-14T10:23:11.000Z',
         placedTo: '2024-08-14T10:23:11.000Z',
+        includeTotal: false,
+        needsAction: true,
+        dispute: 'any',
+        shipByBefore: '2024-08-14T10:23:11.000Z',
+        orderNumberPrefix: 'orderNumberPrefix',
+        seller: 'seller',
       });
     },
   },

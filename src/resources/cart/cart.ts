@@ -27,7 +27,7 @@ export class Cart extends APIResource {
    *
    * Each item's `unitPrice` is the price when you added it. If the seller lowers their price, your cart price follows; if they raise it, the item is removed from your cart. When a listing no longer has enough units, your cart quantity is reduced to what is available.
    *
-   * Adding items to your cart does not put them on hold — availability is checked at checkout.
+   * Listings in your cart can sell to someone else until you pay, so availability is checked at checkout.
    *
    * Requires the `cart:read` scope.
    *

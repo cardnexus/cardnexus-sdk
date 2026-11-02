@@ -106,7 +106,7 @@ export interface OrderPartyRating {
 }
 
 /**
- * Your shopping cart, grouped by seller. Adding items does not put them on hold — availability is checked at checkout.
+ * Your shopping cart, grouped by seller. Its listings can sell to someone else until you pay, so availability is checked at checkout.
  */
 export interface Cart {
   /**
@@ -123,6 +123,10 @@ export interface Cart {
    * Your cart's items, grouped by seller. Each group ships as its own parcel.
    */
   sellers: Array<CartSellerGroup>;
+  /**
+   * The cart page on cardnexus.com, where you review the cart and pay. The link carries no credentials: a signed-out visitor is sent to sign in and then back to the cart.
+   */
+  webUrl: string;
 }
 
 /**
@@ -165,6 +169,10 @@ export interface CartItem {
    * The product's image. `null` when there is none.
    */
   imageUrl: string | null;
+  /**
+   * `true` when cardnexus.com hides the product's art by default. The image is still returned in `imageUrl`.
+   */
+  imageCensored: boolean;
   /**
    * The card's condition: `NM`, `LP`, `MP`, `HP`, or `DMG`. `null` when the card is graded or the product is sealed.
    */
@@ -303,6 +311,8 @@ export namespace RunCreateParams {
       | 'pt-PT'
       | 'ru'
       | 'sa'
+      | 'cs'
+      | 'hu'
     >;
     /**
      * Ceiling on the unit price for this line.
@@ -396,6 +406,8 @@ export namespace RunCreateParams {
       | 'pt-PT'
       | 'ru'
       | 'sa'
+      | 'cs'
+      | 'hu'
     >;
   }
 
@@ -757,7 +769,9 @@ export namespace RunRetrieveResponse {
             | 'pt-BR'
             | 'pt-PT'
             | 'ru'
-            | 'sa';
+            | 'sa'
+            | 'cs'
+            | 'hu';
         }
 
         export namespace Item {

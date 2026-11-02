@@ -149,7 +149,9 @@ export namespace ListItemCreateParams {
       | 'pt-BR'
       | 'pt-PT'
       | 'ru'
-      | 'sa';
+      | 'sa'
+      | 'cs'
+      | 'hu';
     /**
      * How many copies this line calls for. Send `0` to remove the line.
      * @minimum 0
