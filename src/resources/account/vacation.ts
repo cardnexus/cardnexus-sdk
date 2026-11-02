@@ -28,6 +28,8 @@ export class Vacation extends APIResource {
    *
    * The change takes effect immediately and returns the resulting state.
    *
+   * Turning vacation on also voids your open offers and the accepted offers the buyer has not paid yet, and removes your cards from buyers' carts. Turning it off does not bring any of them back. Orders already placed are not changed: you still have to ship them. Re-indexing your listings, cleaning the carts and voiding the offers run a short time after the call returns, so the returned state is the setting, not the finished cleanup.
+   *
    * Requires the `account:write` scope.
    *
    * @param {VacationSetParams} body - The request body to send.

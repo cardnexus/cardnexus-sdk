@@ -16,7 +16,11 @@ export class Sales extends APIResource {
    *
    * Each item carries the order, its items and totals, the **buyer** you sold to — their handle, country, review score, and recent order-handling stats — and the address to ship to, so a batch of parcels can be prepared from one call.
    *
-   * Filter with `status` (repeatable), the `placedFrom` / `placedTo` date range, and your own `metadata` — `?metadata[fulfillment_stage]=packed` returns the sales carrying exactly that pair, and repeating the parameter with another key requires all of them. Walk the full set by following `pagination.nextCursor`: pass it back as `cursor` until it comes back `null`. `limit` defaults to 50, maximum 100.
+   * Filter with `status` (repeatable), the `placedFrom` / `placedTo` date range, and your own `metadata` — `?metadata[fulfillment_stage]=packed` returns the sales carrying exactly that pair, and repeating the parameter with another key requires all of them. `needsAction=true` returns the sales waiting on you, `dispute` the sales with a dispute, `buyer` the sales to a buyer by username, and `orderNumberPrefix` the sales whose number starts with the text. `shipByBefore` and `shipByAfter` bound the ship-by deadline of sales awaiting dispatch, and `sort=shipBy` lists those sales earliest deadline first.
+   *
+   * Walk the full set by following `pagination.nextCursor`: pass it back as `cursor`, with the same filters and sort, until it comes back `null`. `limit` defaults to 50, maximum 100. Send `includeTotal=true` on the first page to get the exact `pagination.total`.
+   *
+   * Each sale carries `webUrl` (its page on cardnexus.com), `shipBy` and `actions`, the operations you can run on it now.
    *
    * Requires the `sales:read` scope.
    *
@@ -28,6 +32,7 @@ export class Sales extends APIResource {
    * ```ts
    * const sale = await client.sales.list({
    *   limit: 50,
+   *   includeTotal: false,
    * });
    * ```
    */
@@ -65,13 +70,15 @@ export class Sales extends APIResource {
    *
    * The order must be awaiting dispatch (`pending_shipment`) or have an open cancellation request (`cancellation_requested`) — you can still ship within the cancellation-request window. Any other status returns `409 INVALID_STATUS`.
    *
-   * The response carries a tracking link under `shipping`. The carrier is detected automatically from the tracking number and appears on the sale once detection completes. A tracking number that is rejected as invalid returns `422 TRACKING_REGISTRATION_FAILED`. Pass `trackingUrl` to show the buyer your own tracking page instead.
+   * The response carries a tracking link under `shipping`. The carrier is detected automatically from the tracking number and appears on the sale once detection completes. A tracking number that is rejected as invalid returns `422 TRACKING_REGISTRATION_FAILED`. If the tracking provider is busy, the call returns `429 TRACKING_RATE_LIMITED` with `retryAfter` and changes nothing. Pass `trackingUrl` to show the buyer your own tracking page instead.
    *
    * A USPS Intelligent Mail barcode (IMb) number ships the sale as a letter: `shipping.type` is `letter` and the carrier is `usps`. CardNexus cannot follow IMb scans itself; the application that printed the label sends them with `POST /v1/tracking/events`.
    *
    * When the sale's `shippingService` is `untracked`, the buyer paid for an untracked letter: you can leave `trackingNumber` out and the sale ships without one, with `shipping.trackingNumber` and `shipping.type` set to `null`. The sale then closes on its own at `untrackedCloseAt`. Leaving `trackingNumber` out on a `tracked` sale returns `409 TRACKING_NUMBER_REQUIRED`.
    *
    * Pass `metadata` to stamp your own key/value pairs in the same call, merged the same way `PATCH /v1/sales/{orderNumber}/metadata` merges them. The two either both apply or neither does: a tracking number rejected as invalid leaves the sale's metadata unchanged, and metadata that would take the sale past its key limit returns `422 METADATA_LIMIT_EXCEEDED` without shipping the order.
+   *
+   * A sale worth more than €1,000 shipped from the EU to a destination outside the EU customs area ships without a CardNexus label, even on CardNexus-managed shipping, and must travel tracked with signature on delivery. Pass `signatureConfirmed: true` to confirm it; without it the call returns `409 SIGNATURE_REQUIRED`.
    *
    * CardNexus Shield shipping insurance cannot be opted into through the API — sales shipped here are uninsured. Use the web or mobile app to insure a shipment.
    *
@@ -105,6 +112,8 @@ export class Sales extends APIResource {
    * Cancels one of your sales. The order moves to `cancelled_seller`, the buyer is refunded in full, and the cards return to your inventory.
    *
    * The order must be awaiting dispatch (`pending_shipment`). Any other status returns `409 INVALID_STATUS`.
+   *
+   * When the buyer has asked to cancel (`cancellation_requested`), use `POST /v1/sales/{orderNumber}/accept-cancellation` instead: it has no review or completion-rate penalty.
    *
    * `reasonText` is shown to the buyer along with the reason code, and both appear on the sale's `cancellation` afterwards.
    *
@@ -246,6 +255,15 @@ export interface Sale {
    */
   shippingService: 'tracked' | 'untracked';
   /**
+   * The order page on cardnexus.com. The link carries no credentials: a signed-in person lands on the order.
+   */
+  webUrl: string;
+  /**
+   * The ship-by deadline. Set while the order is `pending_shipment` or `cancellation_requested`; `null` otherwise.
+   * @format date-time
+   */
+  shipBy: OffersAPI.DateString | null;
+  /**
    * When this untracked order closes on its own: it completes and the seller is paid, unless a dispute is opened before then. `null` on tracked orders, and until an untracked order ships.
    * @format date-time
    */
@@ -294,6 +312,14 @@ export interface Sale {
    * Your own key/value pairs on this sale. Empty when you haven't set any. Keys start with a letter and may contain letters, digits, `_`, `.` and `-`, up to 64 characters; values are strings of up to 500 characters. A sale holds at most 50 keys. The buyer never sees them.
    */
   metadata: OrderMetadata;
+  /**
+   * For a sale whose shipping CardNexus manages: `created` once the shipping label exists, `none` before. `null` when you ship the order yourself.
+   */
+  labelState: 'none' | 'created' | null;
+  /**
+   * The operations that can act on this sale now, filtered by the permissions of your key.
+   */
+  actions: Array<Sale.Action>;
 }
 
 export namespace Sale {
@@ -353,6 +379,27 @@ export namespace Sale {
      */
     customId: LinesAPI.CustomID | null;
   }
+
+  export interface Action {
+    /**
+     * The action. Each id names one operation on this resource.
+     */
+    id:
+      | 'mark-shipped'
+      | 'get-shipping-options'
+      | 'create-shipping-label'
+      | 'cancel'
+      | 'accept-cancellation'
+      | 'update-tracking';
+    /**
+     * The HTTP method of the operation.
+     */
+    method: 'GET' | 'POST';
+    /**
+     * The API path of the operation, including the `/v1` prefix.
+     */
+    path: string;
+  }
 }
 
 /**
@@ -396,6 +443,15 @@ export interface SaleDetail {
    * The shipping the buyer paid for. `tracked` ships with a tracking number. `untracked` ships as a letter, which may have no tracking number.
    */
   shippingService: 'tracked' | 'untracked';
+  /**
+   * The order page on cardnexus.com. The link carries no credentials: a signed-in person lands on the order.
+   */
+  webUrl: string;
+  /**
+   * The ship-by deadline. Set while the order is `pending_shipment` or `cancellation_requested`; `null` otherwise.
+   * @format date-time
+   */
+  shipBy: OffersAPI.DateString | null;
   /**
    * When this untracked order closes on its own: it completes and the seller is paid, unless a dispute is opened before then. `null` on tracked orders, and until an untracked order ships.
    * @format date-time
@@ -445,6 +501,14 @@ export interface SaleDetail {
    * Your own key/value pairs on this sale. Empty when you haven't set any. Keys start with a letter and may contain letters, digits, `_`, `.` and `-`, up to 64 characters; values are strings of up to 500 characters. A sale holds at most 50 keys. The buyer never sees them.
    */
   metadata: OrderMetadata;
+  /**
+   * For a sale whose shipping CardNexus manages: `created` once the shipping label exists, `none` before. `null` when you ship the order yourself.
+   */
+  labelState: 'none' | 'created' | null;
+  /**
+   * The operations that can act on this sale now, filtered by the permissions of your key.
+   */
+  actions: Array<SaleDetail.Action>;
   /**
    * Tracking details once you mark the order shipped. `null` before then.
    */
@@ -511,6 +575,27 @@ export namespace SaleDetail {
      * @maxLength 255
      */
     customId: LinesAPI.CustomID | null;
+  }
+
+  export interface Action {
+    /**
+     * The action. Each id names one operation on this resource.
+     */
+    id:
+      | 'mark-shipped'
+      | 'get-shipping-options'
+      | 'create-shipping-label'
+      | 'cancel'
+      | 'accept-cancellation'
+      | 'update-tracking';
+    /**
+     * The HTTP method of the operation.
+     */
+    method: 'GET' | 'POST';
+    /**
+     * The API path of the operation, including the `/v1` prefix.
+     */
+    path: string;
   }
 }
 
@@ -686,7 +771,7 @@ export interface OrderShipping {
 }
 
 /**
- * Details of a cancelled order.
+ * Details of a cancelled order or of a cancellation request.
  */
 export interface OrderCancellation {
   /**
@@ -702,10 +787,20 @@ export interface OrderCancellation {
    */
   reasonText: string | null;
   /**
-   * When the order was cancelled.
+   * When the cancellation was recorded. For an order in `cancellation_requested` this is when the buyer asked; once the order is cancelled it is when the cancellation took effect.
    * @format date-time
    */
   cancelledAt: string;
+  /**
+   * When the buyer asked to cancel, for a cancellation that began as a buyer request. `null` for any other cancellation.
+   * @format date-time
+   */
+  requestedAt: OffersAPI.DateString | null;
+  /**
+   * While the order is `cancellation_requested`, when the system accepts the request by itself and refunds the buyer unless the seller ships first. `null` otherwise.
+   * @format date-time
+   */
+  autoAcceptAt: OffersAPI.DateString | null;
 }
 
 /**
@@ -787,9 +882,44 @@ export interface SaleListParams {
    */
   placedTo?: OffersAPI.DateString;
   /**
+   * Adds `pagination.total`, the exact number of orders matching the filters, to a request that sends no `cursor`. Counting costs one extra query; leave it off when you only page through.
+   * @default false
+   */
+  includeTotal?: boolean;
+  /**
+   * `true` returns only orders that need your action: for sales `pending_shipment`, `cancellation_requested` and `dispute_open`; for purchases `shipped`, `delivered` and `dispute_open`.
+   */
+  needsAction?: boolean;
+  /**
+   * Only orders with a dispute: `open` is `dispute_open`, `escalated` is `dispute_escalated`, `resolved` is the five `resolved_*` statuses, `any` is all seven. Combines with `status`.
+   */
+  dispute?: 'any' | 'open' | 'escalated' | 'resolved';
+  /**
+   * Only orders still awaiting dispatch (`pending_shipment`) whose `shipBy` deadline is before this instant.
+   * @format date-time
+   */
+  shipByBefore?: OffersAPI.DateString;
+  /**
+   * Only orders whose number starts with this text, at least 2 characters. Case-insensitive.
+   */
+  orderNumberPrefix?: string;
+  /**
    * Return only sales whose metadata matches every one of these key/value pairs exactly, e.g. `?metadata[fulfillment_stage]=packed`. Repeat the parameter with a different key to require several, up to 10 per call. Matching is case-sensitive and exact — there is no partial or prefix match.
    */
   metadata?: Record<string, string>;
+  /**
+   * Only orders still awaiting dispatch (`pending_shipment`) whose `shipBy` deadline is after this instant.
+   * @format date-time
+   */
+  shipByAfter?: string;
+  /**
+   * Only sales to buyers whose username contains this text, at least 2 characters. Case-insensitive, among your own sales.
+   */
+  buyer?: string;
+  /**
+   * `newest` (default) returns the latest sales first. `shipBy` returns only sales awaiting dispatch, earliest deadline first.
+   */
+  sort?: 'newest' | 'shipBy';
 }
 
 export interface SaleListResponse {
@@ -799,7 +929,16 @@ export interface SaleListResponse {
 
 export namespace SaleListResponse {
   export interface Pagination {
+    /**
+     * Pass as `cursor` for the next page. `null` on the last page.
+     */
     nextCursor: string | null;
+    /**
+     * The exact number of orders matching the filters. Present only when `includeTotal` was `true` and no `cursor` was sent.
+     * @minimum -9007199254740991
+     * @maximum 9007199254740991
+     */
+    total?: number;
   }
 }
 
@@ -817,6 +956,10 @@ export interface SaleMarkShippedParams {
    * @maxLength 2048
    */
   trackingUrl?: string;
+  /**
+   * Confirms the parcel ships tracked, with signature on delivery. Required for a sale worth more than €1,000 shipped from the EU to a destination outside the EU customs area, which ships without a CardNexus label. Not needed on other sales: shipment insurance, which asks for the same confirmation above its own threshold, is not available through the API.
+   */
+  signatureConfirmed?: boolean;
   /**
    * Metadata to write. Keys you send are set, keys you send as `null` are removed, and keys you leave out keep their current value. An empty string is a value, not a removal. Send `{}` to change nothing. Keys start with a letter and may contain letters, digits, `_`, `.` and `-`, up to 64 characters; values are strings of up to 500 characters. A sale holds at most 50 keys once the write is applied.
    */

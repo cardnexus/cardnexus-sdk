@@ -132,6 +132,7 @@ export type {
   ListListResponse,
   ListCreateParams,
   ListCreateResponse,
+  ListRetrieveParams,
   ListRetrieveResponse,
   ListUpdateParams,
   ListUpdateResponse,

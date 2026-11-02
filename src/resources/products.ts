@@ -121,12 +121,13 @@ export class Products extends APIResource {
    *
    * - `limit` defaults to 50, max 200. `offset` defaults to 0.
    * - `sortBy`, `sortDirection` — sort the results.
+   * - `pagination.nextCursor` — pass it back as `cursor`, with the same filters and sort, to read the next page; it is `null` on the last page. A cursor cannot be combined with a non-zero `offset`, A different search returns `CURSOR_MISMATCH`, and a cursor that cannot be read or is older than a day `INVALID_CURSOR`. A page read with a cursor returns `pagination.total` as `null` unless `includeTotal` is `true`. Without `name` and `listings`, pages follow the sort by key, so a walk neither repeats nor skips a product while the catalogue changes. With `listings`, results are ranked by relevance, and relevance can change between requests when the listings change: a cursor walk can show a product twice or miss one, so start again from the first page to catch up.
    *
    * Each result has `productType` set to either `card` or `sealed`. Card products carry per-finish prices and per-game attributes; sealed products carry a single price plus EAN/SKU.
    *
    * This endpoint has its own rate-limit bucket (`catalogue-search`); paginating through tens of thousands of results will hit it before your account-level limit. The daily feeds are the right tool for bulk catalogue replication.
    *
-   * Authentication is required (any valid API key); no scope.
+   * Authentication is required (any valid API key); no scope. The `cardmarket` and `tcgplayer` price blocks need the `market-values` data permission and are left out without it.
    *
    * @param {ProductSearchParams} params - The parameters to send with the request.
    * @param {RequestOptions} [options] - Options to apply to the request, such as headers and an abort signal.
@@ -157,7 +158,7 @@ export class Products extends APIResource {
    *
    * The response is a discriminated union by `productType` (`card` or `sealed`).
    *
-   * Authentication is required (any valid API key); no scope.
+   * Authentication is required (any valid API key); no scope. The `cardmarket` and `tcgplayer` price blocks need the `market-values` data permission and are left out without it.
    *
    * @param {string} productID - The product's identifier. Returned by `GET /v1/products` and `GET /v1/products/{productId}`.
    * @param {RequestOptions} [options] - Options to apply to the request, such as headers and an abort signal.
@@ -175,11 +176,13 @@ export class Products extends APIResource {
   /**
    * Returns the Marketplace listings for a catalogue product — every listing's price, quantity for sale, the card's condition and language, the seller's photos of the card, and the seller behind it.
    *
-   * Listings are sorted by price, cheapest first; when sellers list in different currencies, prices are compared in a common currency for the sort. Each listing's `price` stays in the currency the seller lists in.
+   * Listings are sorted by price, cheapest first, unless you pass `sortBy`: `price`, `priceVsMarket` (how far the price is below or above the listing's market price, which needs `deliveryCountry` or `region`) or `newest`. `sortDirection` defaults to `asc`, and to `desc` for `newest`. When sellers list in different currencies, prices are compared in a common currency for the sort, using the daily exchange rate without any margin. Each listing's `price` stays in the currency the seller lists in.
    *
-   * Filter with any combination of `condition`, `language`, `finish`, and `region`. `condition`, `language`, and `finish` can each be repeated to match any of several values, e.g. `?condition=NM&condition=LP`. Pass `deliveryCountry` to keep only listings from sellers who ship to you — each listing then carries the seller's shipping charge under `seller.shipping`. Without `deliveryCountry`, every listing is returned and `seller.shipping` is `null`.
+   * Each listing carries its `marketPrice` and `priceVsMarketPercent` (both `null` without the `market-values` data permission, which `sortBy: priceVsMarket` also needs: otherwise the request is refused with 403 `DATA_PERMISSION_REQUIRED`), the time the seller put it up under `listedAt`, and the seller's `verifiedSalesCount`.
    *
-   * Results are paginated: follow `pagination.nextCursor` by passing it back as `cursor` until it comes back `null`. `limit` defaults to 50, maximum 100.
+   * Filter with any combination of `condition`, `language`, `finish`, `graded` and `region`. `condition`, `language`, and `finish` can each be repeated to match any of several values, e.g. `?condition=NM&condition=LP`. Pass `deliveryCountry` to keep only listings from sellers who ship to you — each listing then carries the seller's shipping charge under `seller.shipping`. Without `deliveryCountry`, every listing is returned and `seller.shipping` is `null`.
+   *
+   * Results are paginated: follow `pagination.nextCursor` by passing it back as `cursor` until it comes back `null`. A cursor belongs to the filters and sort of the request that returned it, and a different search returns `CURSOR_MISMATCH`. A page can hold fewer than `limit` listings when some sold or were taken down since the search was indexed; the next cursor still continues without skipping or repeating a listing. `limit` defaults to 50, maximum 100.
    *
    * To buy from a listing, pass its `listingId` to `POST /v1/cart/items`.
    *
@@ -349,6 +352,10 @@ export interface CardProduct {
    * Languages this product was printed in, as ISO 639 codes (e.g. `en`, `fr`, `ja`).
    */
   languages: Array<string>;
+  /**
+   * `true` when cardnexus.com hides the product's art by default. The image is still returned in `imageUrl`.
+   */
+  imageCensored: boolean;
   productType: 'card';
   /**
    * The finishes this card was printed in (e.g. `Standard`, `Foil`, `Reverse Holo`).
@@ -386,7 +393,7 @@ export interface CardProduct {
     | 'Holofoil'
   >;
   /**
-   * Current market prices keyed by finish — up to three blocks per finish: `cardmarket` (EUR), `tcgplayer` (USD), and `cardnexus` (listings live on the CardNexus marketplace). Only finishes with pricing data are present — missing keys mean there's no price for that finish yet. An empty object means the card has no pricing data at all.
+   * Current market prices keyed by finish — up to three blocks per finish: `cardmarket` (EUR) and `tcgplayer` (USD) market values, which need the `market-values` data permission, and `cardnexus` (listings live on the CardNexus marketplace). Only finishes with pricing data are present — missing keys mean there's no price for that finish yet. An empty object means the card has no pricing data at all.
    */
   pricesByFinish: Record<string, PricingAPI.FinishPriceBlocks>;
   /**
@@ -438,17 +445,17 @@ export interface CardProduct {
 export namespace CardProduct {
   export interface Availability {
     /**
-     * True when at least one listing matches your filters.
+     * True when `cheapest` names a copy. The five cheapest matching copies are checked: still on sale, from a visible active seller and, with `deliveryCountry`, from a seller who ships there. False when none of them qualifies, even if `listingCount` is above 0.
      */
     inStock: boolean;
     /**
-     * How many listings match your filters.
+     * How many listings match your filters. With five matching copies or fewer, only the copies that qualify are counted.
      * @minimum 0
      * @maximum 9007199254740991
      */
     listingCount: number;
     /**
-     * The cheapest matching listing, compared on `priceEur`. `null` when nothing matches.
+     * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. `null` when none qualifies.
      */
     cheapest: Availability.Cheapest | null;
   }
@@ -588,13 +595,17 @@ export interface SealedProduct {
    * Languages this product was printed in, as ISO 639 codes (e.g. `en`, `fr`, `ja`).
    */
   languages: Array<string>;
+  /**
+   * `true` when cardnexus.com hides the product's art by default. The image is still returned in `imageUrl`.
+   */
+  imageCensored: boolean;
   productType: 'sealed';
   /**
    * What kind of sealed product this is: one of 36 categories shared by every game (e.g. `booster_box`, `booster`, `bundle`, `prerelease_kit`, `commander_deck`, `starter_deck`). The full list is in the catalog feed guide, under Sealed product categories.
    */
   productCategory: string;
   /**
-   * Current market prices — `cardmarket` (EUR), `tcgplayer` (USD), and `cardnexus` (live marketplace listings) blocks. A sealed product has a single price (no per-finish split).
+   * Current market prices — `cardmarket` (EUR) and `tcgplayer` (USD) market values, which need the `market-values` data permission, and `cardnexus` (live marketplace listings) blocks. A sealed product has a single price (no per-finish split).
    */
   prices: SealedProduct.Prices;
   /**
@@ -630,11 +641,11 @@ export interface SealedProduct {
 export namespace SealedProduct {
   export interface Prices {
     /**
-     * Cardmarket's daily price snapshot, in EUR. Absent when Cardmarket has no price.
+     * Cardmarket's market value, in EUR. Needs the `market-values` data permission; absent without it, or when Cardmarket has no price for this finish. Present without `marketValue` when Cardmarket's latest price has no market value; the changes still apply.
      */
     cardmarket?: Prices.Cardmarket;
     /**
-     * TCGplayer's daily price snapshot, in USD. Absent when TCGplayer has no price.
+     * TCGplayer's market value, in USD. Needs the `market-values` data permission; absent without it, or when TCGplayer has no price for this finish. Present without `marketValue` when TCGplayer's latest price has no market value; the changes still apply.
      */
     tcgplayer?: Prices.Tcgplayer;
     /**
@@ -650,15 +661,18 @@ export namespace SealedProduct {
        */
       currency: 'EUR' | 'USD';
       /**
-       * Lowest observed price, decimal major units.
+       * Deprecated: removed after 30 November 2026; read `marketValue` instead. Lowest observed price, decimal major units.
+       * @deprecated
        */
       low?: number;
       /**
-       * Median observed price, decimal major units.
+       * Deprecated: removed after 30 November 2026; read `marketValue` instead. Median observed price, decimal major units.
+       * @deprecated
        */
       mid?: number;
       /**
-       * Highest observed price, decimal major units.
+       * Deprecated: removed after 30 November 2026; read `marketValue` instead. Highest observed price, decimal major units.
+       * @deprecated
        */
       high?: number;
       /**
@@ -677,56 +691,6 @@ export namespace SealedProduct {
        * Percent change of `marketValue` vs. 30 days ago.
        */
       change30d?: number | null;
-      /**
-       * Per-condition price detail (`NM`, `LP`, `MP`, `HP`, `DMG`), present when condition-level data is available for this marketplace.
-       */
-      byCondition?: Record<string, Cardmarket.ByCondition>;
-    }
-
-    export namespace Cardmarket {
-      export interface ByCondition {
-        /**
-         * Lowest observed price for this group, decimal major units.
-         */
-        low?: number;
-        /**
-         * How many listings are in this group.
-         * @minimum -9007199254740991
-         * @maximum 9007199254740991
-         */
-        listingCount?: number;
-        /**
-         * Total quantity across those listings.
-         * @minimum -9007199254740991
-         * @maximum 9007199254740991
-         */
-        availableQuantity?: number;
-        /**
-         * The same numbers per card language (two-letter code, e.g. `en`, `de`).
-         */
-        byLanguage?: Record<string, ByCondition.ByLanguage>;
-      }
-
-      export namespace ByCondition {
-        export interface ByLanguage {
-          /**
-           * Lowest observed price for this group, decimal major units.
-           */
-          low?: number;
-          /**
-           * How many listings are in this group.
-           * @minimum -9007199254740991
-           * @maximum 9007199254740991
-           */
-          listingCount?: number;
-          /**
-           * Total quantity across those listings.
-           * @minimum -9007199254740991
-           * @maximum 9007199254740991
-           */
-          availableQuantity?: number;
-        }
-      }
     }
 
     export interface Tcgplayer {
@@ -735,15 +699,18 @@ export namespace SealedProduct {
        */
       currency: 'EUR' | 'USD';
       /**
-       * Lowest observed price, decimal major units.
+       * Deprecated: removed after 30 November 2026; read `marketValue` instead. Lowest observed price, decimal major units.
+       * @deprecated
        */
       low?: number;
       /**
-       * Median observed price, decimal major units.
+       * Deprecated: removed after 30 November 2026; read `marketValue` instead. Median observed price, decimal major units.
+       * @deprecated
        */
       mid?: number;
       /**
-       * Highest observed price, decimal major units.
+       * Deprecated: removed after 30 November 2026; read `marketValue` instead. Highest observed price, decimal major units.
+       * @deprecated
        */
       high?: number;
       /**
@@ -762,56 +729,6 @@ export namespace SealedProduct {
        * Percent change of `marketValue` vs. 30 days ago.
        */
       change30d?: number | null;
-      /**
-       * Per-condition price detail (`NM`, `LP`, `MP`, `HP`, `DMG`), present when condition-level data is available for this marketplace.
-       */
-      byCondition?: Record<string, Tcgplayer.ByCondition>;
-    }
-
-    export namespace Tcgplayer {
-      export interface ByCondition {
-        /**
-         * Lowest observed price for this group, decimal major units.
-         */
-        low?: number;
-        /**
-         * How many listings are in this group.
-         * @minimum -9007199254740991
-         * @maximum 9007199254740991
-         */
-        listingCount?: number;
-        /**
-         * Total quantity across those listings.
-         * @minimum -9007199254740991
-         * @maximum 9007199254740991
-         */
-        availableQuantity?: number;
-        /**
-         * The same numbers per card language (two-letter code, e.g. `en`, `de`).
-         */
-        byLanguage?: Record<string, ByCondition.ByLanguage>;
-      }
-
-      export namespace ByCondition {
-        export interface ByLanguage {
-          /**
-           * Lowest observed price for this group, decimal major units.
-           */
-          low?: number;
-          /**
-           * How many listings are in this group.
-           * @minimum -9007199254740991
-           * @maximum 9007199254740991
-           */
-          listingCount?: number;
-          /**
-           * Total quantity across those listings.
-           * @minimum -9007199254740991
-           * @maximum 9007199254740991
-           */
-          availableQuantity?: number;
-        }
-      }
     }
 
     export interface Cardnexus {
@@ -923,17 +840,17 @@ export namespace SealedProduct {
 
   export interface Availability {
     /**
-     * True when at least one listing matches your filters.
+     * True when `cheapest` names a copy. The five cheapest matching copies are checked: still on sale, from a visible active seller and, with `deliveryCountry`, from a seller who ships there. False when none of them qualifies, even if `listingCount` is above 0.
      */
     inStock: boolean;
     /**
-     * How many listings match your filters.
+     * How many listings match your filters. With five matching copies or fewer, only the copies that qualify are counted.
      * @minimum 0
      * @maximum 9007199254740991
      */
     listingCount: number;
     /**
-     * The cheapest matching listing, compared on `priceEur`. `null` when nothing matches.
+     * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. `null` when none qualifies.
      */
     cheapest: Availability.Cheapest | null;
   }
@@ -1074,6 +991,10 @@ export interface CardProductDetail {
    */
   languages: Array<string>;
   /**
+   * `true` when cardnexus.com hides the product's art by default. The image is still returned in `imageUrl`.
+   */
+  imageCensored: boolean;
+  /**
    * IDs this product carries on other marketplaces and card databases. Use these to bridge with existing Cardmarket / TCGplayer integrations or external card data sources.
    */
   externalIds: ExternalIDs;
@@ -1114,7 +1035,7 @@ export interface CardProductDetail {
     | 'Holofoil'
   >;
   /**
-   * Current market prices keyed by finish — up to three blocks per finish: `cardmarket` (EUR), `tcgplayer` (USD), and `cardnexus` (listings live on the CardNexus marketplace). Only finishes with pricing data are present — missing keys mean there's no price for that finish yet. An empty object means the card has no pricing data at all.
+   * Current market prices keyed by finish — up to three blocks per finish: `cardmarket` (EUR) and `tcgplayer` (USD) market values, which need the `market-values` data permission, and `cardnexus` (listings live on the CardNexus marketplace). Only finishes with pricing data are present — missing keys mean there's no price for that finish yet. An empty object means the card has no pricing data at all.
    */
   pricesByFinish: Record<string, PricingAPI.FinishPriceBlocks>;
   /**
@@ -1162,17 +1083,17 @@ export interface CardProductDetail {
 export namespace CardProductDetail {
   export interface Availability {
     /**
-     * True when at least one listing matches your filters.
+     * True when `cheapest` names a copy. The five cheapest matching copies are checked: still on sale, from a visible active seller and, with `deliveryCountry`, from a seller who ships there. False when none of them qualifies, even if `listingCount` is above 0.
      */
     inStock: boolean;
     /**
-     * How many listings match your filters.
+     * How many listings match your filters. With five matching copies or fewer, only the copies that qualify are counted.
      * @minimum 0
      * @maximum 9007199254740991
      */
     listingCount: number;
     /**
-     * The cheapest matching listing, compared on `priceEur`. `null` when nothing matches.
+     * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. `null` when none qualifies.
      */
     cheapest: Availability.Cheapest | null;
   }
@@ -1313,6 +1234,10 @@ export interface SealedProductDetail {
    */
   languages: Array<string>;
   /**
+   * `true` when cardnexus.com hides the product's art by default. The image is still returned in `imageUrl`.
+   */
+  imageCensored: boolean;
+  /**
    * IDs this product carries on other marketplaces and card databases. Use these to bridge with existing Cardmarket / TCGplayer integrations or external card data sources.
    */
   externalIds: ExternalIDs;
@@ -1322,7 +1247,7 @@ export interface SealedProductDetail {
    */
   productCategory: string;
   /**
-   * Current market prices — `cardmarket` (EUR), `tcgplayer` (USD), and `cardnexus` (live marketplace listings) blocks. A sealed product has a single price (no per-finish split).
+   * Current market prices — `cardmarket` (EUR) and `tcgplayer` (USD) market values, which need the `market-values` data permission, and `cardnexus` (live marketplace listings) blocks. A sealed product has a single price (no per-finish split).
    */
   prices: SealedProductDetail.Prices;
   /**
@@ -1354,11 +1279,11 @@ export interface SealedProductDetail {
 export namespace SealedProductDetail {
   export interface Prices {
     /**
-     * Cardmarket's daily price snapshot, in EUR. Absent when Cardmarket has no price.
+     * Cardmarket's market value, in EUR. Needs the `market-values` data permission; absent without it, or when Cardmarket has no price for this finish. Present without `marketValue` when Cardmarket's latest price has no market value; the changes still apply.
      */
     cardmarket?: Prices.Cardmarket;
     /**
-     * TCGplayer's daily price snapshot, in USD. Absent when TCGplayer has no price.
+     * TCGplayer's market value, in USD. Needs the `market-values` data permission; absent without it, or when TCGplayer has no price for this finish. Present without `marketValue` when TCGplayer's latest price has no market value; the changes still apply.
      */
     tcgplayer?: Prices.Tcgplayer;
     /**
@@ -1374,15 +1299,18 @@ export namespace SealedProductDetail {
        */
       currency: 'EUR' | 'USD';
       /**
-       * Lowest observed price, decimal major units.
+       * Deprecated: removed after 30 November 2026; read `marketValue` instead. Lowest observed price, decimal major units.
+       * @deprecated
        */
       low?: number;
       /**
-       * Median observed price, decimal major units.
+       * Deprecated: removed after 30 November 2026; read `marketValue` instead. Median observed price, decimal major units.
+       * @deprecated
        */
       mid?: number;
       /**
-       * Highest observed price, decimal major units.
+       * Deprecated: removed after 30 November 2026; read `marketValue` instead. Highest observed price, decimal major units.
+       * @deprecated
        */
       high?: number;
       /**
@@ -1401,56 +1329,6 @@ export namespace SealedProductDetail {
        * Percent change of `marketValue` vs. 30 days ago.
        */
       change30d?: number | null;
-      /**
-       * Per-condition price detail (`NM`, `LP`, `MP`, `HP`, `DMG`), present when condition-level data is available for this marketplace.
-       */
-      byCondition?: Record<string, Cardmarket.ByCondition>;
-    }
-
-    export namespace Cardmarket {
-      export interface ByCondition {
-        /**
-         * Lowest observed price for this group, decimal major units.
-         */
-        low?: number;
-        /**
-         * How many listings are in this group.
-         * @minimum -9007199254740991
-         * @maximum 9007199254740991
-         */
-        listingCount?: number;
-        /**
-         * Total quantity across those listings.
-         * @minimum -9007199254740991
-         * @maximum 9007199254740991
-         */
-        availableQuantity?: number;
-        /**
-         * The same numbers per card language (two-letter code, e.g. `en`, `de`).
-         */
-        byLanguage?: Record<string, ByCondition.ByLanguage>;
-      }
-
-      export namespace ByCondition {
-        export interface ByLanguage {
-          /**
-           * Lowest observed price for this group, decimal major units.
-           */
-          low?: number;
-          /**
-           * How many listings are in this group.
-           * @minimum -9007199254740991
-           * @maximum 9007199254740991
-           */
-          listingCount?: number;
-          /**
-           * Total quantity across those listings.
-           * @minimum -9007199254740991
-           * @maximum 9007199254740991
-           */
-          availableQuantity?: number;
-        }
-      }
     }
 
     export interface Tcgplayer {
@@ -1459,15 +1337,18 @@ export namespace SealedProductDetail {
        */
       currency: 'EUR' | 'USD';
       /**
-       * Lowest observed price, decimal major units.
+       * Deprecated: removed after 30 November 2026; read `marketValue` instead. Lowest observed price, decimal major units.
+       * @deprecated
        */
       low?: number;
       /**
-       * Median observed price, decimal major units.
+       * Deprecated: removed after 30 November 2026; read `marketValue` instead. Median observed price, decimal major units.
+       * @deprecated
        */
       mid?: number;
       /**
-       * Highest observed price, decimal major units.
+       * Deprecated: removed after 30 November 2026; read `marketValue` instead. Highest observed price, decimal major units.
+       * @deprecated
        */
       high?: number;
       /**
@@ -1486,56 +1367,6 @@ export namespace SealedProductDetail {
        * Percent change of `marketValue` vs. 30 days ago.
        */
       change30d?: number | null;
-      /**
-       * Per-condition price detail (`NM`, `LP`, `MP`, `HP`, `DMG`), present when condition-level data is available for this marketplace.
-       */
-      byCondition?: Record<string, Tcgplayer.ByCondition>;
-    }
-
-    export namespace Tcgplayer {
-      export interface ByCondition {
-        /**
-         * Lowest observed price for this group, decimal major units.
-         */
-        low?: number;
-        /**
-         * How many listings are in this group.
-         * @minimum -9007199254740991
-         * @maximum 9007199254740991
-         */
-        listingCount?: number;
-        /**
-         * Total quantity across those listings.
-         * @minimum -9007199254740991
-         * @maximum 9007199254740991
-         */
-        availableQuantity?: number;
-        /**
-         * The same numbers per card language (two-letter code, e.g. `en`, `de`).
-         */
-        byLanguage?: Record<string, ByCondition.ByLanguage>;
-      }
-
-      export namespace ByCondition {
-        export interface ByLanguage {
-          /**
-           * Lowest observed price for this group, decimal major units.
-           */
-          low?: number;
-          /**
-           * How many listings are in this group.
-           * @minimum -9007199254740991
-           * @maximum 9007199254740991
-           */
-          listingCount?: number;
-          /**
-           * Total quantity across those listings.
-           * @minimum -9007199254740991
-           * @maximum 9007199254740991
-           */
-          availableQuantity?: number;
-        }
-      }
     }
 
     export interface Cardnexus {
@@ -1647,17 +1478,17 @@ export namespace SealedProductDetail {
 
   export interface Availability {
     /**
-     * True when at least one listing matches your filters.
+     * True when `cheapest` names a copy. The five cheapest matching copies are checked: still on sale, from a visible active seller and, with `deliveryCountry`, from a seller who ships there. False when none of them qualifies, even if `listingCount` is above 0.
      */
     inStock: boolean;
     /**
-     * How many listings match your filters.
+     * How many listings match your filters. With five matching copies or fewer, only the copies that qualify are counted.
      * @minimum 0
      * @maximum 9007199254740991
      */
     listingCount: number;
     /**
-     * The cheapest matching listing, compared on `priceEur`. `null` when nothing matches.
+     * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. `null` when none qualifies.
      */
     cheapest: Availability.Cheapest | null;
   }
@@ -1813,9 +1644,22 @@ export interface ProductListing {
    */
   photos: Array<ProductListing.Photo>;
   /**
-   * The seller behind a Marketplace listing.
+   * The listing's own market price, adjusted for its condition. For a graded card or a sealed product it is the market price of the finish, so the grade is not taken into account. Quoted for the region of `deliveryCountry`, otherwise of `region`, otherwise of the seller's own region. `null` when the finish has no market price in that region, and always `null` when your key or app lacks the `market-values` data permission.
    */
-  seller: ListingSeller;
+  marketPrice: ProductListing.MarketPrice | null;
+  /**
+   * How far `price` is from `marketPrice`, in percent to one decimal: `-12.4` is 12.4 percent below the market price. `null` when `marketPrice` is `null`, including when your key or app lacks the `market-values` data permission.
+   */
+  priceVsMarketPercent: number | null;
+  /**
+   * When the seller put this listing up.
+   * @format date-time
+   */
+  listedAt: string;
+  /**
+   * The seller behind a listing, with their rating and verified sales.
+   */
+  seller: ProductListing.Seller;
 }
 
 export namespace ProductListing {
@@ -1837,6 +1681,51 @@ export namespace ProductListing {
      * @maximum 9007199254740991
      */
     height: number;
+  }
+
+  export interface MarketPrice {
+    /**
+     * Decimal amount in the currency's major unit (e.g. `5.23` for €5.23). 2 decimal places for EUR/USD/GBP/CHF/CAD/AUD.
+     */
+    amount: number;
+    currency: 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'SEK' | 'DKK' | 'NOK' | 'PLN' | 'HUF';
+    /**
+     * The seller's market region: `eu` (Europe) or `na` (North America — the United States and Canada).
+     */
+    region: 'eu' | 'na';
+  }
+
+  export interface Seller {
+    /**
+     * Stable opaque identifier for the seller. Do not parse.
+     */
+    id: string;
+    /**
+     * The seller's public handle.
+     */
+    username: string;
+    /**
+     * The seller's country as a two-letter ISO 3166-1 alpha-2 code.
+     */
+    country: string;
+    /**
+     * `pro` if they sell as a registered company, `individual` if they sell as a private person.
+     */
+    type: 'pro' | 'individual';
+    /**
+     * A party's average review score and the number of reviews behind it.
+     */
+    rating: RunsAPI.OrderPartyRating;
+    /**
+     * What this seller charges to ship your order to the `deliveryCountry` you passed. `null` when the request had no `deliveryCountry`.
+     */
+    shipping: AccountAPI.Money | null;
+    /**
+     * Sales the seller made on another marketplace before joining CardNexus, checked by CardNexus and shown as a badge on their profile. It does not count sales on CardNexus, and is 0 for most sellers.
+     * @minimum 0
+     * @maximum 9007199254740991
+     */
+    verifiedSalesCount: number;
   }
 }
 
@@ -2127,6 +2016,12 @@ export interface ProductSearchParams {
    */
   nameSlug?: string;
   /**
+   * Body param: Every printing of each named card (1–200 slugs), across expansions. A 60-card decklist is one call instead of 60. Combine with `gameFilters.game`: slugs are game-specific.
+   * @minItems 1
+   * @maxItems 200
+   */
+  nameSlugs?: Array<string>;
+  /**
    * Body param: Restrict results to products carrying any of these Cardmarket product ids (1–200), returned with full details. Use this to fetch details for ids you already know; to turn a list of ids into products and learn which ones don't match, use `POST /v1/products/resolve`.
    * @minItems 1
    * @maxItems 200
@@ -2158,6 +2053,7 @@ export interface ProductSearchParams {
     | ProductSearchParams.Wankul
     | ProductSearchParams.OnePiece
     | ProductSearchParams.YuGiOh
+    | ProductSearchParams.YuGiOhOcg
     | ProductSearchParams.Rise
     | ProductSearchParams.Riftbound
     | ProductSearchParams.Drakerion
@@ -2173,7 +2069,8 @@ export interface ProductSearchParams {
     | ProductSearchParams.GundamCardGame
     | ProductSearchParams.ChronoCore
     | ProductSearchParams.PalworldTcg
-    | ProductSearchParams.AzukiTcg;
+    | ProductSearchParams.AzukiTcg
+    | ProductSearchParams.DreamlandTcg;
   /**
    * Body param: Search against live marketplace listings. Sending this object — even empty — adds an `availability` block to every result carrying the cheapest listing you can buy under these filters. Not accepted together with `cardmarketId`, `tcgplayerId`, or `sortBy: releaseDate`.
    */
@@ -2186,6 +2083,14 @@ export interface ProductSearchParams {
    * Body param: Sort direction. Defaults to `asc`.
    */
   sortDirection?: 'asc' | 'desc';
+  /**
+   * Body param: The `pagination.nextCursor` of the previous page, sent back with the same filters and sort to read the next page. Cannot be combined with a non-zero `offset`.
+   */
+  cursor?: string;
+  /**
+   * Body param: Return `pagination.total` on a request that has a `cursor`. Without a `cursor` the total is always returned.
+   */
+  includeTotal?: boolean;
 }
 
 export namespace ProductSearchParams {
@@ -2385,6 +2290,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -2478,6 +2385,7 @@ export namespace ProductSearchParams {
           | 'Action'
           | 'Alien'
           | 'Ally'
+          | 'Boss'
           | 'Broom'
           | 'Captain'
           | 'Colossus'
@@ -2560,6 +2468,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
     }
@@ -2640,6 +2550,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
     }
@@ -2851,6 +2763,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -3033,6 +2947,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -3171,6 +3087,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
     }
@@ -3292,6 +3210,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -3407,6 +3327,10 @@ export namespace ProductSearchParams {
           | 'Millennium Secret Rare'
           | 'Millennium Gold Rare'
           | 'Grand Master Rare'
+          | '20th Secret Rare'
+          | 'Kaiba Corporation Common'
+          | 'Kaiba Corporation Rare'
+          | 'Kaiba Corporation Ultra Rare'
           | 'Short Print'
           | 'Super Short Print'
           | 'Speed Duel Skill'
@@ -3441,6 +3365,10 @@ export namespace ProductSearchParams {
           | 'Misprint'
           | 'Oversized'
           | 'Limited Edition'
+          | 'Reprint'
+          | 'Classic Style'
+          | 'Logo'
+          | 'Original Layout'
         >;
       }
 
@@ -3619,6 +3547,350 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
+        >;
+      }
+
+      export interface Atk {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface Def {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface Level {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface Rank {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface Scale {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface LinkRating {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+    }
+  }
+
+  export interface YuGiOhOcg {
+    game: 'ygo-ocg';
+    /**
+     * @default {}
+     */
+    filters?: YuGiOhOcg.Filters;
+  }
+
+  export namespace YuGiOhOcg {
+    export interface Filters {
+      name?: Filters.Name;
+      rarity?: Filters.Rarity;
+      variant?: Filters.Variant;
+      finish?: Filters.Finish;
+      finishes?: Filters.Finishes;
+      type?: Filters.Type;
+      attribute?: Filters.Attribute;
+      race?: Filters.Race;
+      linkMarkers?: Filters.LinkMarkers;
+      languages?: Filters.Languages;
+      atk?: Filters.Atk;
+      def?: Filters.Def;
+      level?: Filters.Level;
+      rank?: Filters.Rank;
+      scale?: Filters.Scale;
+      linkRating?: Filters.LinkRating;
+    }
+
+    export namespace Filters {
+      export interface Name {
+        value: string;
+      }
+
+      export interface Rarity {
+        op: 'and' | 'or';
+        values: Array<
+          | 'Common'
+          | 'Rare'
+          | 'Super Rare'
+          | 'Ultra Rare'
+          | 'Secret Rare'
+          | 'Ultimate Rare'
+          | 'Ghost Rare'
+          | 'Ghost/Gold Rare'
+          | 'Gold Rare'
+          | 'Gold Secret Rare'
+          | 'Premium Gold Rare'
+          | 'Platinum Rare'
+          | 'Platinum Secret Rare'
+          | 'Prismatic Secret Rare'
+          | 'Prismatic Ultimate Rare'
+          | "Prismatic Collector's Rare"
+          | 'Quarter Century Secret Rare'
+          | '10000 Secret Rare'
+          | 'Starlight Rare'
+          | "Collector's Rare"
+          | 'Extra Secret Rare'
+          | 'Ultra Secret Rare'
+          | 'Starfoil Rare'
+          | 'Shatterfoil Rare'
+          | 'Mosaic Rare'
+          | 'Holographic Rare'
+          | 'Parallel Rare'
+          | 'Normal Parallel Rare'
+          | 'Super Parallel Rare'
+          | 'Ultra Parallel Rare'
+          | 'Secret Parallel Rare'
+          | 'Duel Terminal Normal Parallel Rare'
+          | 'Duel Terminal Rare Parallel Rare'
+          | 'Duel Terminal Super Parallel Rare'
+          | 'Duel Terminal Ultra Parallel Rare'
+          | 'Duel Terminal Secret Parallel Rare'
+          | 'Duel Terminal Technology Common'
+          | 'Duel Terminal Technology Ultra Rare'
+          | 'Emblazoned Rare'
+          | 'Emblazoned Ultra Rare'
+          | 'Emblazoned Secret Rare'
+          | "Ultra Pharaoh's Rare"
+          | "Secret Pharaoh's Rare"
+          | 'Millennium Rare'
+          | 'Millennium Super Rare'
+          | 'Millennium Ultra Rare'
+          | 'Millennium Secret Rare'
+          | 'Millennium Gold Rare'
+          | 'Grand Master Rare'
+          | '20th Secret Rare'
+          | 'Kaiba Corporation Common'
+          | 'Kaiba Corporation Rare'
+          | 'Kaiba Corporation Ultra Rare'
+          | 'Short Print'
+          | 'Super Short Print'
+          | 'Speed Duel Skill'
+          | 'Token'
+          | 'Promo'
+        >;
+      }
+
+      export interface Variant {
+        op: 'and' | 'or';
+        values: Array<
+          | 'Alternate Art'
+          | 'New Art'
+          | 'Art 7'
+          | 'Art 8'
+          | 'HERO Art'
+          | 'Extended Art'
+          | 'Japanese Artwork'
+          | 'Blue'
+          | 'Green'
+          | 'Purple'
+          | 'Red'
+          | 'Silver'
+          | 'Bronze'
+          | 'Yellow'
+          | 'Orange'
+          | 'Black'
+          | 'OTS Stamp'
+          | 'Judge Stamp'
+          | 'Regional Stamp'
+          | 'Stamp'
+          | 'Misprint'
+          | 'Oversized'
+          | 'Limited Edition'
+          | 'Reprint'
+          | 'Classic Style'
+          | 'Logo'
+          | 'Original Layout'
+        >;
+      }
+
+      export interface Finish {
+        op: 'and' | 'or';
+        values: Array<'Standard'>;
+      }
+
+      export interface Finishes {
+        op: 'and' | 'or';
+        values: Array<'Standard'>;
+      }
+
+      export interface Type {
+        op: 'and' | 'or';
+        values: Array<
+          | 'Effect Monster'
+          | 'Flip Effect Monster'
+          | 'Flip Tuner Effect Monster'
+          | 'Fusion Monster'
+          | 'Gemini Monster'
+          | 'Link Monster'
+          | 'Normal Monster'
+          | 'Normal Tuner Monster'
+          | 'Pendulum Effect Fusion Monster'
+          | 'Pendulum Effect Monster'
+          | 'Pendulum Effect Ritual Monster'
+          | 'Pendulum Flip Effect Monster'
+          | 'Pendulum Normal Monster'
+          | 'Pendulum Tuner Effect Monster'
+          | 'Ritual Effect Monster'
+          | 'Ritual Monster'
+          | 'Skill Card'
+          | 'Spell Card'
+          | 'Spirit Monster'
+          | 'Synchro Monster'
+          | 'Synchro Pendulum Effect Monster'
+          | 'Synchro Tuner Monster'
+          | 'Token'
+          | 'Toon Monster'
+          | 'Trap Card'
+          | 'Tuner Monster'
+          | 'Union Effect Monster'
+          | 'XYZ Monster'
+          | 'XYZ Pendulum Effect Monster'
+        >;
+      }
+
+      export interface Attribute {
+        op: 'and' | 'or';
+        values: Array<'DARK' | 'DIVINE' | 'EARTH' | 'FIRE' | 'LIGHT' | 'WATER' | 'WIND'>;
+      }
+
+      export interface Race {
+        op: 'and' | 'or';
+        values: Array<
+          | 'Abidos the Th'
+          | 'Adrian Gecko'
+          | 'Alexis Rhodes'
+          | 'Amnael'
+          | 'Andrew'
+          | 'Aqua'
+          | 'Arkana'
+          | 'Aster Phoenix'
+          | 'Axel Brodie'
+          | 'Bastion Misaw'
+          | 'Beast'
+          | 'Beast-Warrior'
+          | 'Bonz'
+          | 'Camula'
+          | 'Chazz Princet'
+          | 'Christine'
+          | 'Chumley Huffi'
+          | 'Continuous'
+          | 'Counter'
+          | 'Creator God'
+          | 'Cyberse'
+          | 'David'
+          | 'Dinosaur'
+          | 'Divine-Beast'
+          | 'Don Zaloog'
+          | 'Dr. Vellian C'
+          | 'Dragon'
+          | 'Emma'
+          | 'Equip'
+          | 'Espa Roba'
+          | 'Fairy'
+          | 'Field'
+          | 'Fiend'
+          | 'Fish'
+          | 'Illusion'
+          | 'Insect'
+          | 'Ishizu'
+          | 'Ishizu Ishtar'
+          | 'Jaden Yuki'
+          | 'Jesse Anderso'
+          | 'Joey'
+          | 'Joey Wheeler'
+          | 'Kagemaru'
+          | 'Kaiba'
+          | 'Keith'
+          | 'Lumis Umbra'
+          | 'Lumis and Umb'
+          | 'Machine'
+          | 'Mai'
+          | 'Mai Valentine'
+          | 'Mako'
+          | 'Nightshroud'
+          | 'Normal'
+          | 'Odion'
+          | 'Paradox Broth'
+          | 'Pegasus'
+          | 'Plant'
+          | 'Psychic'
+          | 'Pyro'
+          | 'Quick-Play'
+          | 'Reptile'
+          | 'Rex'
+          | 'Ritual'
+          | 'Rock'
+          | 'Sea Serpent'
+          | 'Seto Kaiba'
+          | 'Spellcaster'
+          | 'Syrus Truesda'
+          | 'Tania'
+          | 'Tea Gardner'
+          | 'The Supreme K'
+          | 'Thelonious Vi'
+          | 'Thunder'
+          | 'Titan'
+          | 'Tyranno Hassl'
+          | 'Warrior'
+          | 'Weevil'
+          | 'Winged Beast'
+          | 'Wyrm'
+          | 'Yami Bakura'
+          | 'Yami Marik'
+          | 'Yami Yugi'
+          | 'Yubel'
+          | 'Yugi'
+          | 'Zane Truesdal'
+          | 'Zombie'
+        >;
+      }
+
+      export interface LinkMarkers {
+        op: 'and' | 'or';
+        values: Array<
+          'Top-Left' | 'Top' | 'Top-Right' | 'Left' | 'Right' | 'Bottom-Left' | 'Bottom' | 'Bottom-Right'
+        >;
+      }
+
+      export interface Languages {
+        op: 'and' | 'or';
+        values: Array<
+          | 'en'
+          | 'fr'
+          | 'de'
+          | 'it'
+          | 'es'
+          | 'nl'
+          | 'pl'
+          | 'grc'
+          | 'ar'
+          | 'zh-Hans'
+          | 'zh-Hant'
+          | 'zh-cn'
+          | 'he'
+          | 'ja'
+          | 'ko'
+          | 'th'
+          | 'id'
+          | 'la'
+          | 'art-x-phyrexian'
+          | 'pt-BR'
+          | 'pt-PT'
+          | 'ru'
+          | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -3783,6 +4055,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -4020,6 +4294,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -4254,6 +4530,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -4439,6 +4717,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -4742,6 +5022,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -5110,6 +5392,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -5293,6 +5577,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -5838,6 +6124,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -6056,6 +6344,7 @@ export namespace ProductSearchParams {
           | 'Super Special'
           | 'Over Super Rare'
           | 'Trial Deck'
+          | 'Trial Deck Rare'
           | 'Trial Deck Special'
           | 'Trial Deck Super Rare'
           | 'Promo'
@@ -6098,6 +6387,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -6252,6 +6543,8 @@ export namespace ProductSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -6301,6 +6594,135 @@ export namespace ProductSearchParams {
       }
 
       export interface GatePower2 {
+        min: number;
+        max: number;
+      }
+    }
+  }
+
+  export interface DreamlandTcg {
+    game: 'dreamland';
+    /**
+     * @default {}
+     */
+    filters?: DreamlandTcg.Filters;
+  }
+
+  export namespace DreamlandTcg {
+    export interface Filters {
+      name?: Filters.Name;
+      rarity?: Filters.Rarity;
+      finish?: Filters.Finish;
+      finishes?: Filters.Finishes;
+      languages?: Filters.Languages;
+      cardType?: Filters.CardType;
+      cardClass?: Filters.CardClass;
+      abilityType?: Filters.AbilityType;
+      rank?: Filters.Rank;
+      aura?: Filters.Aura | Filters.Aura2;
+      force?: Filters.Force | Filters.Force2;
+      comboBonus?: Filters.ComboBonus | Filters.ComboBonus2;
+    }
+
+    export namespace Filters {
+      export interface Name {
+        value: string;
+      }
+
+      export interface Rarity {
+        op: 'and' | 'or';
+        values: Array<
+          'Banale' | 'Peu banale' | "Kibrill'" | 'Crazy' | 'Dream' | 'Promo' | 'Initiation' | 'Winner'
+        >;
+      }
+
+      export interface Finish {
+        op: 'and' | 'or';
+        values: Array<'Standard'>;
+      }
+
+      export interface Finishes {
+        op: 'and' | 'or';
+        values: Array<'Standard'>;
+      }
+
+      export interface Languages {
+        op: 'and' | 'or';
+        values: Array<
+          | 'en'
+          | 'fr'
+          | 'de'
+          | 'it'
+          | 'es'
+          | 'nl'
+          | 'pl'
+          | 'grc'
+          | 'ar'
+          | 'zh-Hans'
+          | 'zh-Hant'
+          | 'zh-cn'
+          | 'he'
+          | 'ja'
+          | 'ko'
+          | 'th'
+          | 'id'
+          | 'la'
+          | 'art-x-phyrexian'
+          | 'pt-BR'
+          | 'pt-PT'
+          | 'ru'
+          | 'sa'
+          | 'cs'
+          | 'hu'
+        >;
+      }
+
+      export interface CardType {
+        op: 'and' | 'or';
+        values: Array<'Perso' | 'Kick' | 'Soutien' | 'Lieu'>;
+      }
+
+      export interface CardClass {
+        op: 'and' | 'or';
+        values: Array<'Voyageur' | 'Créature'>;
+      }
+
+      export interface AbilityType {
+        op: 'and' | 'or';
+        values: Array<'Capacité' | 'Dégât'>;
+      }
+
+      export interface Rank {
+        op: 'and' | 'or';
+        values: Array<'B' | 'M' | 'S' | 'Star'>;
+      }
+
+      export interface Aura {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface Aura2 {
+        min: number;
+        max: number;
+      }
+
+      export interface Force {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface Force2 {
+        min: number;
+        max: number;
+      }
+
+      export interface ComboBonus {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface ComboBonus2 {
         min: number;
         max: number;
       }
@@ -6385,11 +6807,16 @@ export namespace ProductSearchResponse {
      */
     limit: number;
     /**
+     * How many products match. `null` on a page read with a `cursor` unless `includeTotal` is `true`.
      * @minimum 0
      * @maximum 9007199254740991
      */
-    total: number;
+    total: number | null;
     hasMore: boolean;
+    /**
+     * Pass it back as `cursor`, with the same filters and sort, to read the next page. `null` on the last page.
+     */
+    nextCursor: string | null;
   }
 }
 
@@ -6425,6 +6852,10 @@ export namespace ProductRetrieveResponse {
      * Languages this product was printed in, as ISO 639 codes (e.g. `en`, `fr`, `ja`).
      */
     languages: Array<string>;
+    /**
+     * `true` when cardnexus.com hides the product's art by default. The image is still returned in `imageUrl`.
+     */
+    imageCensored: boolean;
     /**
      * IDs this product carries on other marketplaces and card databases. Use these to bridge with existing Cardmarket / TCGplayer integrations or external card data sources.
      */
@@ -6466,7 +6897,7 @@ export namespace ProductRetrieveResponse {
       | 'Holofoil'
     >;
     /**
-     * Current market prices keyed by finish — up to three blocks per finish: `cardmarket` (EUR), `tcgplayer` (USD), and `cardnexus` (listings live on the CardNexus marketplace). Only finishes with pricing data are present — missing keys mean there's no price for that finish yet. An empty object means the card has no pricing data at all.
+     * Current market prices keyed by finish — up to three blocks per finish: `cardmarket` (EUR) and `tcgplayer` (USD) market values, which need the `market-values` data permission, and `cardnexus` (listings live on the CardNexus marketplace). Only finishes with pricing data are present — missing keys mean there's no price for that finish yet. An empty object means the card has no pricing data at all.
      */
     pricesByFinish: Record<string, PricingAPI.FinishPriceBlocks>;
     /**
@@ -6514,17 +6945,17 @@ export namespace ProductRetrieveResponse {
   export namespace CardProductDetail {
     export interface Availability {
       /**
-       * True when at least one listing matches your filters.
+       * True when `cheapest` names a copy. The five cheapest matching copies are checked: still on sale, from a visible active seller and, with `deliveryCountry`, from a seller who ships there. False when none of them qualifies, even if `listingCount` is above 0.
        */
       inStock: boolean;
       /**
-       * How many listings match your filters.
+       * How many listings match your filters. With five matching copies or fewer, only the copies that qualify are counted.
        * @minimum 0
        * @maximum 9007199254740991
        */
       listingCount: number;
       /**
-       * The cheapest matching listing, compared on `priceEur`. `null` when nothing matches.
+       * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. `null` when none qualifies.
        */
       cheapest: Availability.Cheapest | null;
     }
@@ -6665,6 +7096,10 @@ export namespace ProductRetrieveResponse {
      */
     languages: Array<string>;
     /**
+     * `true` when cardnexus.com hides the product's art by default. The image is still returned in `imageUrl`.
+     */
+    imageCensored: boolean;
+    /**
      * IDs this product carries on other marketplaces and card databases. Use these to bridge with existing Cardmarket / TCGplayer integrations or external card data sources.
      */
     externalIds: ExternalIDs;
@@ -6674,7 +7109,7 @@ export namespace ProductRetrieveResponse {
      */
     productCategory: string;
     /**
-     * Current market prices — `cardmarket` (EUR), `tcgplayer` (USD), and `cardnexus` (live marketplace listings) blocks. A sealed product has a single price (no per-finish split).
+     * Current market prices — `cardmarket` (EUR) and `tcgplayer` (USD) market values, which need the `market-values` data permission, and `cardnexus` (live marketplace listings) blocks. A sealed product has a single price (no per-finish split).
      */
     prices: SealedProductDetail.Prices;
     /**
@@ -6706,11 +7141,11 @@ export namespace ProductRetrieveResponse {
   export namespace SealedProductDetail {
     export interface Prices {
       /**
-       * Cardmarket's daily price snapshot, in EUR. Absent when Cardmarket has no price.
+       * Cardmarket's market value, in EUR. Needs the `market-values` data permission; absent without it, or when Cardmarket has no price for this finish. Present without `marketValue` when Cardmarket's latest price has no market value; the changes still apply.
        */
       cardmarket?: Prices.Cardmarket;
       /**
-       * TCGplayer's daily price snapshot, in USD. Absent when TCGplayer has no price.
+       * TCGplayer's market value, in USD. Needs the `market-values` data permission; absent without it, or when TCGplayer has no price for this finish. Present without `marketValue` when TCGplayer's latest price has no market value; the changes still apply.
        */
       tcgplayer?: Prices.Tcgplayer;
       /**
@@ -6726,15 +7161,18 @@ export namespace ProductRetrieveResponse {
          */
         currency: 'EUR' | 'USD';
         /**
-         * Lowest observed price, decimal major units.
+         * Deprecated: removed after 30 November 2026; read `marketValue` instead. Lowest observed price, decimal major units.
+         * @deprecated
          */
         low?: number;
         /**
-         * Median observed price, decimal major units.
+         * Deprecated: removed after 30 November 2026; read `marketValue` instead. Median observed price, decimal major units.
+         * @deprecated
          */
         mid?: number;
         /**
-         * Highest observed price, decimal major units.
+         * Deprecated: removed after 30 November 2026; read `marketValue` instead. Highest observed price, decimal major units.
+         * @deprecated
          */
         high?: number;
         /**
@@ -6753,56 +7191,6 @@ export namespace ProductRetrieveResponse {
          * Percent change of `marketValue` vs. 30 days ago.
          */
         change30d?: number | null;
-        /**
-         * Per-condition price detail (`NM`, `LP`, `MP`, `HP`, `DMG`), present when condition-level data is available for this marketplace.
-         */
-        byCondition?: Record<string, Cardmarket.ByCondition>;
-      }
-
-      export namespace Cardmarket {
-        export interface ByCondition {
-          /**
-           * Lowest observed price for this group, decimal major units.
-           */
-          low?: number;
-          /**
-           * How many listings are in this group.
-           * @minimum -9007199254740991
-           * @maximum 9007199254740991
-           */
-          listingCount?: number;
-          /**
-           * Total quantity across those listings.
-           * @minimum -9007199254740991
-           * @maximum 9007199254740991
-           */
-          availableQuantity?: number;
-          /**
-           * The same numbers per card language (two-letter code, e.g. `en`, `de`).
-           */
-          byLanguage?: Record<string, ByCondition.ByLanguage>;
-        }
-
-        export namespace ByCondition {
-          export interface ByLanguage {
-            /**
-             * Lowest observed price for this group, decimal major units.
-             */
-            low?: number;
-            /**
-             * How many listings are in this group.
-             * @minimum -9007199254740991
-             * @maximum 9007199254740991
-             */
-            listingCount?: number;
-            /**
-             * Total quantity across those listings.
-             * @minimum -9007199254740991
-             * @maximum 9007199254740991
-             */
-            availableQuantity?: number;
-          }
-        }
       }
 
       export interface Tcgplayer {
@@ -6811,15 +7199,18 @@ export namespace ProductRetrieveResponse {
          */
         currency: 'EUR' | 'USD';
         /**
-         * Lowest observed price, decimal major units.
+         * Deprecated: removed after 30 November 2026; read `marketValue` instead. Lowest observed price, decimal major units.
+         * @deprecated
          */
         low?: number;
         /**
-         * Median observed price, decimal major units.
+         * Deprecated: removed after 30 November 2026; read `marketValue` instead. Median observed price, decimal major units.
+         * @deprecated
          */
         mid?: number;
         /**
-         * Highest observed price, decimal major units.
+         * Deprecated: removed after 30 November 2026; read `marketValue` instead. Highest observed price, decimal major units.
+         * @deprecated
          */
         high?: number;
         /**
@@ -6838,56 +7229,6 @@ export namespace ProductRetrieveResponse {
          * Percent change of `marketValue` vs. 30 days ago.
          */
         change30d?: number | null;
-        /**
-         * Per-condition price detail (`NM`, `LP`, `MP`, `HP`, `DMG`), present when condition-level data is available for this marketplace.
-         */
-        byCondition?: Record<string, Tcgplayer.ByCondition>;
-      }
-
-      export namespace Tcgplayer {
-        export interface ByCondition {
-          /**
-           * Lowest observed price for this group, decimal major units.
-           */
-          low?: number;
-          /**
-           * How many listings are in this group.
-           * @minimum -9007199254740991
-           * @maximum 9007199254740991
-           */
-          listingCount?: number;
-          /**
-           * Total quantity across those listings.
-           * @minimum -9007199254740991
-           * @maximum 9007199254740991
-           */
-          availableQuantity?: number;
-          /**
-           * The same numbers per card language (two-letter code, e.g. `en`, `de`).
-           */
-          byLanguage?: Record<string, ByCondition.ByLanguage>;
-        }
-
-        export namespace ByCondition {
-          export interface ByLanguage {
-            /**
-             * Lowest observed price for this group, decimal major units.
-             */
-            low?: number;
-            /**
-             * How many listings are in this group.
-             * @minimum -9007199254740991
-             * @maximum 9007199254740991
-             */
-            listingCount?: number;
-            /**
-             * Total quantity across those listings.
-             * @minimum -9007199254740991
-             * @maximum 9007199254740991
-             */
-            availableQuantity?: number;
-          }
-        }
       }
 
       export interface Cardnexus {
@@ -6999,17 +7340,17 @@ export namespace ProductRetrieveResponse {
 
     export interface Availability {
       /**
-       * True when at least one listing matches your filters.
+       * True when `cheapest` names a copy. The five cheapest matching copies are checked: still on sale, from a visible active seller and, with `deliveryCountry`, from a seller who ships there. False when none of them qualifies, even if `listingCount` is above 0.
        */
       inStock: boolean;
       /**
-       * How many listings match your filters.
+       * How many listings match your filters. With five matching copies or fewer, only the copies that qualify are counted.
        * @minimum 0
        * @maximum 9007199254740991
        */
       listingCount: number;
       /**
-       * The cheapest matching listing, compared on `priceEur`. `null` when nothing matches.
+       * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. `null` when none qualifies.
        */
       cheapest: Availability.Cheapest | null;
     }
@@ -7184,6 +7525,18 @@ export interface ProductListListingsParams {
    * @maxLength 2
    */
   deliveryCountry?: string;
+  /**
+   * `true` returns graded cards only, `false` returns ungraded cards and sealed products only. Omit it to return both.
+   */
+  graded?: boolean;
+  /**
+   * What to order listings by. Defaults to `price`. `priceVsMarket` needs `deliveryCountry` or `region`, and leaves out listings with no market price in that region.
+   */
+  sortBy?: 'price' | 'priceVsMarket' | 'newest';
+  /**
+   * Sort direction. Defaults to `asc` for `price` and `priceVsMarket`, and to `desc` for `newest`.
+   */
+  sortDirection?: 'asc' | 'desc';
 }
 
 export interface ProductListListingsResponse {

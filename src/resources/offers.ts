@@ -36,7 +36,7 @@ export class Offers extends APIResource {
   /**
    * Creates one offer for 1–1,000 distinct listings from one seller. Each item supplies only its listing ID and quantity. Supply either total in the listing currency or discountPercentage for the complete item subtotal. Per-item prices are not accepted.
    *
-   * The whole request is validated before creation. Your cart is unchanged, and stock is reserved only on acceptance. An existing live offer with this seller returns 409 with its offerId; cancel an open offer explicitly before replacing it.
+   * The whole request is validated before creation. Your cart is unchanged, and nothing is taken from the seller's stock until the offer is accepted. An existing live offer with this seller returns 409 with its offerId; cancel an open offer explicitly before replacing it.
    *
    * The original subtotal must be at least 20 in the listing currency. Discounts may not exceed 40%; totals below 60% of the original subtotal or above the original subtotal return 422. The server allocates prices with the same rounding rules as the website; currentProposal.total is the resulting subtotal. You may make five creation requests per hour across your API credentials. Retries count toward this limit.
    *
@@ -113,11 +113,11 @@ export class Offers extends APIResource {
   }
 
   /**
-   * Accepts the current price proposal and reserves its stock. You can accept only a proposal sent by the other participant.
+   * Accepts the current price proposal. You can accept only a proposal sent by the other participant.
    *
    * Set `proposalId` to `currentProposal.id` from GET /v1/offers/{offerId}. If the other participant has sent a new price since you fetched the offer, the request returns `409 Conflict` without accepting it. Fetch the offer again and review the new price before accepting.
    *
-   * If stock cannot be reserved, acceptance fails and the offer remains open. Acceptance starts a 48-hour redemption window. It leaves your cart unchanged and does not create a paid order. The buyer adds the accepted offer to the cart separately.
+   * If a listing no longer has the agreed quantity, acceptance fails and the offer remains open. Acceptance starts a 48-hour redemption window. It leaves your cart unchanged and does not create a paid order. The buyer adds the accepted offer to the cart separately.
    *
    * Returns the updated summary. Supports an optional Idempotency-Key. Requires offers:write.
    *
@@ -202,7 +202,7 @@ export class Offers extends APIResource {
    *
    * The offer must be accepted, unexpired, and unspent. Repeating the operation does not add the quantities again. Other cart items are preserved.
    *
-   * After restoration, removing negotiated items or reducing their quantities below the agreement voids the offer. Failed restoration voids this offer and releases its reservation.
+   * After restoration, removing negotiated items or reducing their quantities below the agreement voids the offer. Failed restoration voids this offer.
    *
    * Returns the offer summary; GET /v1/cart returns cart contents. Supports an optional Idempotency-Key. Requires offers:write and cart:write.
    *

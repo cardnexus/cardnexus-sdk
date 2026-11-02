@@ -9,17 +9,17 @@ export class Pricing extends APIResource {
   /**
    * Returns the product's current prices from three sources, keyed by finish:
    *
-   * - `cardmarket` — Cardmarket's daily price snapshot, in EUR: `low`/`mid`/`high`/`marketValue` tiers plus 24h/7d/30d trend percentages.
-   * - `tcgplayer` — TCGplayer's daily price snapshot, in USD, with the same fields.
+   * - `cardmarket` — Cardmarket's market value, in EUR: `marketValue` plus 24h/7d/30d change percentages. Needs the `market-values` data permission.
+   * - `tcgplayer` — TCGplayer's market value, in USD, with the same fields. Needs the `market-values` data permission.
    * - `cardnexus` — the listings live on the CardNexus marketplace right now. `low` is the cheapest listing anywhere on the marketplace, converted to EUR at the current exchange rate; `listingCount` and `availableQuantity` count every region's listings. `regions` breaks the same numbers down per market region — `eu` in EUR and `na` in USD, each with its own cheapest listing, counts, and per-condition / per-language breakdowns. A region's prices are in that region's currency and never mixed with the other region's. A region with no live listings has no key. Graded listings count toward the totals but have no condition bucket.
    *
-   * A source block is absent when it has no data — a finish with no live listings has no `cardnexus` block, and a product with no prices at all returns an empty `pricesByFinish` object.
+   * A source block is absent when it has no data — a finish with no live listings has no `cardnexus` block, and a product with no prices at all returns an empty `pricesByFinish` object. Without the `market-values` permission the `cardmarket` and `tcgplayer` blocks are absent, and a finish with no live CardNexus listing has no entry.
    *
    * For day-by-day price history, see `GET /v1/products/{productId}/prices/history`. To download prices for a whole game in one file, see `GET /v1/feeds/{gameId}/prices`.
    *
    * Requests count against the `pricing-snapshot` rate limit: 600 requests per hour.
    *
-   * Authentication is required (any valid API key); no scope.
+   * Authentication is required (any valid API key); no scope. The `market-values` data permission is checked in addition.
    *
    * @param {string} productID - The product to get prices for. Returned by `GET /v1/products` and `POST /v1/products/search`.
    * @param {RequestOptions} [options] - Options to apply to the request, such as headers and an abort signal.
@@ -38,9 +38,9 @@ export class Pricing extends APIResource {
   }
 
   /**
-   * Returns the product's daily price snapshots from Cardmarket (EUR) and TCGplayer (USD), one entry per day, marketplace, and finish, ordered by date ascending.
+   * Returns the product's daily market values from Cardmarket (EUR) and TCGplayer (USD), one entry per day, marketplace, and finish, ordered by date ascending.
    *
-   * Each entry carries the day's `low`/`mid`/`high`/`marketValue` tiers. Days without a snapshot are absent from the result.
+   * Each entry carries the day's `marketValue`, and the deprecated `low`, `mid` and `high`, which are removed after 30 November 2026. Days without a snapshot are absent from the result. History starts on 6 November 2024.
    *
    * Narrow the result with `marketplace` and `finish`. `from` and `to` bound the range (both inclusive): `to` defaults to today, `from` to 30 days before `to`, and a single request can span at most 365 days.
    *
@@ -48,7 +48,7 @@ export class Pricing extends APIResource {
    *
    * Requests count against the `pricing-history` rate limit: 120 requests per hour.
    *
-   * Authentication is required (any valid API key); no scope.
+   * Authentication is required (any valid API key), and the caller's account (personal key) or application (application credentials, on-behalf calls, grant tokens) must hold the `price-history` data permission; otherwise the request is refused with 403 `DATA_PERMISSION_REQUIRED`. No scope.
    *
    * @param {string} productID - The product to get price history for. Returned by `GET /v1/products` and `POST /v1/products/search`.
    * @param {PricingListHistoryParams} [query] - The parameters to send with the request.
@@ -109,11 +109,11 @@ export class Pricing extends APIResource {
  */
 export interface FinishPriceBlocks {
   /**
-   * Cardmarket's daily price snapshot, in EUR. Absent when Cardmarket has no price.
+   * Cardmarket's market value, in EUR. Needs the `market-values` data permission; absent without it, or when Cardmarket has no price for this finish. Present without `marketValue` when Cardmarket's latest price has no market value; the changes still apply.
    */
   cardmarket?: FinishPriceBlocks.Cardmarket;
   /**
-   * TCGplayer's daily price snapshot, in USD. Absent when TCGplayer has no price.
+   * TCGplayer's market value, in USD. Needs the `market-values` data permission; absent without it, or when TCGplayer has no price for this finish. Present without `marketValue` when TCGplayer's latest price has no market value; the changes still apply.
    */
   tcgplayer?: FinishPriceBlocks.Tcgplayer;
   /**
@@ -129,15 +129,18 @@ export namespace FinishPriceBlocks {
      */
     currency: 'EUR' | 'USD';
     /**
-     * Lowest observed price, decimal major units.
+     * Deprecated: removed after 30 November 2026; read `marketValue` instead. Lowest observed price, decimal major units.
+     * @deprecated
      */
     low?: number;
     /**
-     * Median observed price, decimal major units.
+     * Deprecated: removed after 30 November 2026; read `marketValue` instead. Median observed price, decimal major units.
+     * @deprecated
      */
     mid?: number;
     /**
-     * Highest observed price, decimal major units.
+     * Deprecated: removed after 30 November 2026; read `marketValue` instead. Highest observed price, decimal major units.
+     * @deprecated
      */
     high?: number;
     /**
@@ -156,56 +159,6 @@ export namespace FinishPriceBlocks {
      * Percent change of `marketValue` vs. 30 days ago.
      */
     change30d?: number | null;
-    /**
-     * Per-condition price detail (`NM`, `LP`, `MP`, `HP`, `DMG`), present when condition-level data is available for this marketplace.
-     */
-    byCondition?: Record<string, Cardmarket.ByCondition>;
-  }
-
-  export namespace Cardmarket {
-    export interface ByCondition {
-      /**
-       * Lowest observed price for this group, decimal major units.
-       */
-      low?: number;
-      /**
-       * How many listings are in this group.
-       * @minimum -9007199254740991
-       * @maximum 9007199254740991
-       */
-      listingCount?: number;
-      /**
-       * Total quantity across those listings.
-       * @minimum -9007199254740991
-       * @maximum 9007199254740991
-       */
-      availableQuantity?: number;
-      /**
-       * The same numbers per card language (two-letter code, e.g. `en`, `de`).
-       */
-      byLanguage?: Record<string, ByCondition.ByLanguage>;
-    }
-
-    export namespace ByCondition {
-      export interface ByLanguage {
-        /**
-         * Lowest observed price for this group, decimal major units.
-         */
-        low?: number;
-        /**
-         * How many listings are in this group.
-         * @minimum -9007199254740991
-         * @maximum 9007199254740991
-         */
-        listingCount?: number;
-        /**
-         * Total quantity across those listings.
-         * @minimum -9007199254740991
-         * @maximum 9007199254740991
-         */
-        availableQuantity?: number;
-      }
-    }
   }
 
   export interface Tcgplayer {
@@ -214,15 +167,18 @@ export namespace FinishPriceBlocks {
      */
     currency: 'EUR' | 'USD';
     /**
-     * Lowest observed price, decimal major units.
+     * Deprecated: removed after 30 November 2026; read `marketValue` instead. Lowest observed price, decimal major units.
+     * @deprecated
      */
     low?: number;
     /**
-     * Median observed price, decimal major units.
+     * Deprecated: removed after 30 November 2026; read `marketValue` instead. Median observed price, decimal major units.
+     * @deprecated
      */
     mid?: number;
     /**
-     * Highest observed price, decimal major units.
+     * Deprecated: removed after 30 November 2026; read `marketValue` instead. Highest observed price, decimal major units.
+     * @deprecated
      */
     high?: number;
     /**
@@ -241,56 +197,6 @@ export namespace FinishPriceBlocks {
      * Percent change of `marketValue` vs. 30 days ago.
      */
     change30d?: number | null;
-    /**
-     * Per-condition price detail (`NM`, `LP`, `MP`, `HP`, `DMG`), present when condition-level data is available for this marketplace.
-     */
-    byCondition?: Record<string, Tcgplayer.ByCondition>;
-  }
-
-  export namespace Tcgplayer {
-    export interface ByCondition {
-      /**
-       * Lowest observed price for this group, decimal major units.
-       */
-      low?: number;
-      /**
-       * How many listings are in this group.
-       * @minimum -9007199254740991
-       * @maximum 9007199254740991
-       */
-      listingCount?: number;
-      /**
-       * Total quantity across those listings.
-       * @minimum -9007199254740991
-       * @maximum 9007199254740991
-       */
-      availableQuantity?: number;
-      /**
-       * The same numbers per card language (two-letter code, e.g. `en`, `de`).
-       */
-      byLanguage?: Record<string, ByCondition.ByLanguage>;
-    }
-
-    export namespace ByCondition {
-      export interface ByLanguage {
-        /**
-         * Lowest observed price for this group, decimal major units.
-         */
-        low?: number;
-        /**
-         * How many listings are in this group.
-         * @minimum -9007199254740991
-         * @maximum 9007199254740991
-         */
-        listingCount?: number;
-        /**
-         * Total quantity across those listings.
-         * @minimum -9007199254740991
-         * @maximum 9007199254740991
-         */
-        availableQuantity?: number;
-      }
-    }
   }
 
   export interface Cardnexus {
@@ -538,19 +444,22 @@ export namespace PricingListHistoryResponse {
       | 'Embossed'
       | 'Holofoil';
     /**
-     * Lowest observed price that day, decimal major units.
+     * Deprecated: removed after 30 November 2026; read `marketValue` instead. Lowest observed price that day, decimal major units.
+     * @deprecated
      */
     low?: number;
     /**
-     * Median observed price that day, decimal major units.
+     * Deprecated: removed after 30 November 2026; read `marketValue` instead. Median observed price that day, decimal major units.
+     * @deprecated
      */
     mid?: number;
     /**
-     * Highest observed price that day, decimal major units.
+     * Deprecated: removed after 30 November 2026; read `marketValue` instead. Highest observed price that day, decimal major units.
+     * @deprecated
      */
     high?: number;
     /**
-     * Aggregate market price that day, decimal major units.
+     * Aggregate market price that day, decimal major units. Absent on a day the marketplace published no market value.
      */
     marketValue?: number;
   }

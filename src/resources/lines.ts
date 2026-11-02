@@ -82,7 +82,7 @@ export class Lines extends APIResource {
   }
 
   /**
-   * Searches your inventory lines. Returns a paginated list of lines matching the body, with `total` for the filtered set.
+   * Searches your inventory lines. Returns a page of lines matching the body, with `total` for the filtered set.
    *
    * Filter fields (all combined with AND):
    *
@@ -91,17 +91,24 @@ export class Lines extends APIResource {
    * - `nameSlug` — exact slug match, ignoring case: every line you hold of that card, across printings and expansions.
    * - `tags`, `location` — match by label name. `{ "op": "or", "values": ["to-verify", "reserved"] }` returns lines carrying either tag; `"op": "and"` requires both. Pass `null` as a value to match lines with no tag (or no location) — `{ "op": "or", "values": [null] }` returns untagged lines.
    * - `customId`, `customIdPrefix`, `customIdContains` — match your own line identifiers, case-insensitively. `commentContains` matches your buyer-facing comments word by word.
+   * - `inventoryIds`, `customIds` — read specific lines by their identifier or by your own `customId` (1–200 each).
    * - `productIds`, `expansionId`, `nameSlug` — direct catalogue lookups. `productIds` and `expansionId` take up to 200 ids per call — split larger sets across several calls.
    * - `condition`, `language`, `finish`, `graded`, `forSale`, `quantity`, `listingPrice` — line attributes.
    * - `productType`, `productCategory` — restrict to cards or sealed.
    * - `gameFilters` — pick a game (e.g. `{ "game": "mtg" }`), and optionally that game's own attribute filters in the same object.
+   * - `updatedSince` — lines modified at or after a date and time.
+   * - `marketPrice`, `hasMarketPrice`, `priceVsMarket`, `marketChange`, `priceCheckGroup` — filters on the market price of a line, on how far its listing price is from it, on how the market price moved, and on its price check group. They need a seller profile. `priceVsMarket`, `priceCheckGroup` and the `marketChangeAmount` sort are computed per line, so their cost grows with the number of your matching lines on every page.
    *
    * Pagination + sort:
    *
-   * - `limit` defaults to 50, max 200. `offset` defaults to 0 and pages up to the first 10,000 matches — for a complete walk of your inventory use `GET /v1/inventory` or `POST /v1/inventory/bulk/export`.
-   * - `sortBy`, `sortDirection` — sort the results. When `name` is set, results are ranked by relevance unless you sort explicitly.
+   * - `limit` defaults to 50, max 200. `offset` defaults to 0 and pages up to the first 10,000 matches.
+   * - `pagination.nextCursor` — send it back as `cursor`, with the same filters and sort, to get the next page in a stable order with no depth limit. A cursor sent with other filters or another sort returns `CURSOR_MISMATCH`. `total` is returned on every request without a `cursor`, and on one with a `cursor` only when `includeTotal` is `true`.
+   * - `includeMarket` — adds each line's market price, its movement over a day, a week and a month, and how far the listing price is from the market price. It needs a seller profile.
+   * - `sortBy`, `sortDirection` — sort the results. When `name` is set, results are ranked by relevance unless you sort explicitly. `marketPrice`, `marketChangeAmount` (over `changePeriod`, per card or per line with `weightByQuantity`) and `priceVsMarket` sort by market data and need a seller profile.
    *
-   * This endpoint is for **finding** lines: relevance ranking, label and text matching, jump-to-page pagination. Results can lag your latest changes by a few seconds. To walk your whole inventory — always up to date, in a stable order, with no depth limit — use `GET /v1/inventory`; both return the same line shape.
+   * A search that cannot be completed in time returns `SEARCH_UNAVAILABLE` and never a partial page.
+   *
+   * This endpoint is for **finding** lines: relevance ranking, label and text matching. Results can lag your latest changes by a few seconds. To walk your whole inventory — always up to date, with no lag — use `GET /v1/inventory`; both return the same line shape.
    *
    * `POST /v1/inventory/bulk/export` accepts the same `filters`, so a search can be turned into an export unchanged.
    *
@@ -118,6 +125,10 @@ export class Lines extends APIResource {
    * const line = await client.lines.search({
    *   offset: 0,
    *   limit: 50,
+   *   includeTotal: false,
+   *   includeMarket: false,
+   *   changePeriod: 'week',
+   *   weightByQuantity: false,
    * });
    * ```
    */
@@ -611,7 +622,8 @@ export namespace LineCreateParams {
         | 'CollectAura'
         | 'MTGGrade'
         | 'PureGrading'
-        | 'SGS';
+        | 'SGS'
+        | 'AceGrading';
       /**
        * The certification number printed on the slab. Omit it when you do not have it.
        * @minLength 1
@@ -790,7 +802,7 @@ export interface LineSearchParams {
    */
   'Accept-Language'?: string;
   /**
-   * Body param: How many results to skip. Pages up to the first 10,000 matching lines — to go deeper, narrow the filters, walk `GET /v1/inventory`, or start a bulk export.
+   * Body param: How many results to skip. Pages up to the first 10,000 matching lines. To go deeper, follow `pagination.nextCursor` with `cursor`, which has no depth limit.
    * @default 0
    * @minimum 0
    * @maximum 10000
@@ -838,6 +850,18 @@ export interface LineSearchParams {
    * @minLength 1
    */
   commentContains?: string;
+  /**
+   * Body param: Return only the lines with these identifiers (1–200), as returned in `id` on every line.
+   * @minItems 1
+   * @maxItems 200
+   */
+  inventoryIds?: Array<string>;
+  /**
+   * Body param: Return only the lines whose `customId` equals one of these values (1–200), matched case-insensitively.
+   * @minItems 1
+   * @maxItems 200
+   */
+  customIds?: Array<string>;
   /**
    * Body param: Return only lines for these products (1–200). Product ids come from `GET /v1/products`.
    * @minItems 1
@@ -907,6 +931,7 @@ export interface LineSearchParams {
     | LineSearchParams.Wankul
     | LineSearchParams.OnePiece
     | LineSearchParams.YuGiOh
+    | LineSearchParams.YuGiOhOcg
     | LineSearchParams.Rise
     | LineSearchParams.Riftbound
     | LineSearchParams.Drakerion
@@ -922,15 +947,73 @@ export interface LineSearchParams {
     | LineSearchParams.GundamCardGame
     | LineSearchParams.ChronoCore
     | LineSearchParams.PalworldTcg
-    | LineSearchParams.AzukiTcg;
+    | LineSearchParams.AzukiTcg
+    | LineSearchParams.DreamlandTcg;
   /**
-   * Body param: Field to sort by. Defaults to relevance when `name` is set, otherwise `lastModified`.
+   * Body param: Return only lines modified at or after this date and time (ISO 8601).
+   * @format date-time
    */
-  sortBy?: 'name' | 'quantity' | 'listingPrice' | 'lastModified';
+  updatedSince?: string;
+  /**
+   * Body param: Return only lines whose market price per card falls in this range. Needs a seller profile.
+   */
+  marketPrice?: LineSearchParams.MarketPrice;
+  /**
+   * Body param: `false` returns the lines with no market price, such as graded cards and cards without price data. `true` returns the lines that have one.
+   */
+  hasMarketPrice?: boolean;
+  /**
+   * Body param: Return only lines for sale with a market price whose listing price is this far from it, in percent: `{ "minPercent": 30 }` is more than 30 percent above the market price, `{ "maxPercent": -40 }` is more than 40 percent below it. Costs time in proportion to your matching lines on every page.
+   */
+  priceVsMarket?: LineSearchParams.PriceVsMarket;
+  /**
+   * Body param: Return only lines for sale in one price check group, the groups of the price check. Costs time in proportion to your matching lines on every page.
+   */
+  priceCheckGroup?: 'way-above' | 'above' | 'at-market' | 'good-deals' | 'very-low' | 'no-market';
+  /**
+   * Body param: Return only lines whose market price moved by this percentage over `period` (default `week`).
+   */
+  marketChange?: LineSearchParams.MarketChange;
+  /**
+   * Body param: The `pagination.nextCursor` of the previous page, sent back with the same filters and sort. Pages in a stable order with no depth limit. Cannot be combined with a non-zero `offset`.
+   * @minLength 1
+   */
+  cursor?: string;
+  /**
+   * Body param: `true` returns `pagination.total` on a page reached with a `cursor`. The first page, without a `cursor`, always returns it.
+   * @default false
+   */
+  includeTotal?: boolean;
+  /**
+   * Body param: `true` adds the `market` block and `priceVsMarketPercent` to every line. Needs a seller profile.
+   * @default false
+   */
+  includeMarket?: boolean;
+  /**
+   * Body param: Field to sort by. Defaults to relevance when `name` is set, otherwise `lastModified`. `marketPrice` sorts by the line's market price per card. `marketChangeAmount` sorts by how much the market price moved in currency over `changePeriod`, so the biggest movers come first when descending; add `weightByQuantity` to rank by the whole line. `priceVsMarket` sorts by how far the listing price is from the market price, for lines for sale with a market price.
+   */
+  sortBy?:
+    | 'name'
+    | 'quantity'
+    | 'listingPrice'
+    | 'lastModified'
+    | 'marketPrice'
+    | 'marketChangeAmount'
+    | 'priceVsMarket';
   /**
    * Body param: Sort direction. Defaults to `asc`, except the default `lastModified` sort which is newest first.
    */
   sortDirection?: 'asc' | 'desc';
+  /**
+   * Body param: The period `sortBy: marketChangeAmount` measures the movement over.
+   * @default week
+   */
+  changePeriod?: 'day' | 'week' | 'month';
+  /**
+   * Body param: With `sortBy: marketChangeAmount`, ranks by the movement of the whole line (the movement per card times the quantity) instead of per card.
+   * @default false
+   */
+  weightByQuantity?: boolean;
 }
 
 export namespace LineSearchParams {
@@ -1217,6 +1300,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -1310,6 +1395,7 @@ export namespace LineSearchParams {
           | 'Action'
           | 'Alien'
           | 'Ally'
+          | 'Boss'
           | 'Broom'
           | 'Captain'
           | 'Colossus'
@@ -1392,6 +1478,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
     }
@@ -1472,6 +1560,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
     }
@@ -1683,6 +1773,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -1865,6 +1957,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -2003,6 +2097,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
     }
@@ -2124,6 +2220,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -2239,6 +2337,10 @@ export namespace LineSearchParams {
           | 'Millennium Secret Rare'
           | 'Millennium Gold Rare'
           | 'Grand Master Rare'
+          | '20th Secret Rare'
+          | 'Kaiba Corporation Common'
+          | 'Kaiba Corporation Rare'
+          | 'Kaiba Corporation Ultra Rare'
           | 'Short Print'
           | 'Super Short Print'
           | 'Speed Duel Skill'
@@ -2273,6 +2375,10 @@ export namespace LineSearchParams {
           | 'Misprint'
           | 'Oversized'
           | 'Limited Edition'
+          | 'Reprint'
+          | 'Classic Style'
+          | 'Logo'
+          | 'Original Layout'
         >;
       }
 
@@ -2451,6 +2557,350 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
+        >;
+      }
+
+      export interface Atk {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface Def {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface Level {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface Rank {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface Scale {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface LinkRating {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+    }
+  }
+
+  export interface YuGiOhOcg {
+    game: 'ygo-ocg';
+    /**
+     * @default {}
+     */
+    filters?: YuGiOhOcg.Filters;
+  }
+
+  export namespace YuGiOhOcg {
+    export interface Filters {
+      name?: Filters.Name;
+      rarity?: Filters.Rarity;
+      variant?: Filters.Variant;
+      finish?: Filters.Finish;
+      finishes?: Filters.Finishes;
+      type?: Filters.Type;
+      attribute?: Filters.Attribute;
+      race?: Filters.Race;
+      linkMarkers?: Filters.LinkMarkers;
+      languages?: Filters.Languages;
+      atk?: Filters.Atk;
+      def?: Filters.Def;
+      level?: Filters.Level;
+      rank?: Filters.Rank;
+      scale?: Filters.Scale;
+      linkRating?: Filters.LinkRating;
+    }
+
+    export namespace Filters {
+      export interface Name {
+        value: string;
+      }
+
+      export interface Rarity {
+        op: 'and' | 'or';
+        values: Array<
+          | 'Common'
+          | 'Rare'
+          | 'Super Rare'
+          | 'Ultra Rare'
+          | 'Secret Rare'
+          | 'Ultimate Rare'
+          | 'Ghost Rare'
+          | 'Ghost/Gold Rare'
+          | 'Gold Rare'
+          | 'Gold Secret Rare'
+          | 'Premium Gold Rare'
+          | 'Platinum Rare'
+          | 'Platinum Secret Rare'
+          | 'Prismatic Secret Rare'
+          | 'Prismatic Ultimate Rare'
+          | "Prismatic Collector's Rare"
+          | 'Quarter Century Secret Rare'
+          | '10000 Secret Rare'
+          | 'Starlight Rare'
+          | "Collector's Rare"
+          | 'Extra Secret Rare'
+          | 'Ultra Secret Rare'
+          | 'Starfoil Rare'
+          | 'Shatterfoil Rare'
+          | 'Mosaic Rare'
+          | 'Holographic Rare'
+          | 'Parallel Rare'
+          | 'Normal Parallel Rare'
+          | 'Super Parallel Rare'
+          | 'Ultra Parallel Rare'
+          | 'Secret Parallel Rare'
+          | 'Duel Terminal Normal Parallel Rare'
+          | 'Duel Terminal Rare Parallel Rare'
+          | 'Duel Terminal Super Parallel Rare'
+          | 'Duel Terminal Ultra Parallel Rare'
+          | 'Duel Terminal Secret Parallel Rare'
+          | 'Duel Terminal Technology Common'
+          | 'Duel Terminal Technology Ultra Rare'
+          | 'Emblazoned Rare'
+          | 'Emblazoned Ultra Rare'
+          | 'Emblazoned Secret Rare'
+          | "Ultra Pharaoh's Rare"
+          | "Secret Pharaoh's Rare"
+          | 'Millennium Rare'
+          | 'Millennium Super Rare'
+          | 'Millennium Ultra Rare'
+          | 'Millennium Secret Rare'
+          | 'Millennium Gold Rare'
+          | 'Grand Master Rare'
+          | '20th Secret Rare'
+          | 'Kaiba Corporation Common'
+          | 'Kaiba Corporation Rare'
+          | 'Kaiba Corporation Ultra Rare'
+          | 'Short Print'
+          | 'Super Short Print'
+          | 'Speed Duel Skill'
+          | 'Token'
+          | 'Promo'
+        >;
+      }
+
+      export interface Variant {
+        op: 'and' | 'or';
+        values: Array<
+          | 'Alternate Art'
+          | 'New Art'
+          | 'Art 7'
+          | 'Art 8'
+          | 'HERO Art'
+          | 'Extended Art'
+          | 'Japanese Artwork'
+          | 'Blue'
+          | 'Green'
+          | 'Purple'
+          | 'Red'
+          | 'Silver'
+          | 'Bronze'
+          | 'Yellow'
+          | 'Orange'
+          | 'Black'
+          | 'OTS Stamp'
+          | 'Judge Stamp'
+          | 'Regional Stamp'
+          | 'Stamp'
+          | 'Misprint'
+          | 'Oversized'
+          | 'Limited Edition'
+          | 'Reprint'
+          | 'Classic Style'
+          | 'Logo'
+          | 'Original Layout'
+        >;
+      }
+
+      export interface Finish {
+        op: 'and' | 'or';
+        values: Array<'Standard'>;
+      }
+
+      export interface Finishes {
+        op: 'and' | 'or';
+        values: Array<'Standard'>;
+      }
+
+      export interface Type {
+        op: 'and' | 'or';
+        values: Array<
+          | 'Effect Monster'
+          | 'Flip Effect Monster'
+          | 'Flip Tuner Effect Monster'
+          | 'Fusion Monster'
+          | 'Gemini Monster'
+          | 'Link Monster'
+          | 'Normal Monster'
+          | 'Normal Tuner Monster'
+          | 'Pendulum Effect Fusion Monster'
+          | 'Pendulum Effect Monster'
+          | 'Pendulum Effect Ritual Monster'
+          | 'Pendulum Flip Effect Monster'
+          | 'Pendulum Normal Monster'
+          | 'Pendulum Tuner Effect Monster'
+          | 'Ritual Effect Monster'
+          | 'Ritual Monster'
+          | 'Skill Card'
+          | 'Spell Card'
+          | 'Spirit Monster'
+          | 'Synchro Monster'
+          | 'Synchro Pendulum Effect Monster'
+          | 'Synchro Tuner Monster'
+          | 'Token'
+          | 'Toon Monster'
+          | 'Trap Card'
+          | 'Tuner Monster'
+          | 'Union Effect Monster'
+          | 'XYZ Monster'
+          | 'XYZ Pendulum Effect Monster'
+        >;
+      }
+
+      export interface Attribute {
+        op: 'and' | 'or';
+        values: Array<'DARK' | 'DIVINE' | 'EARTH' | 'FIRE' | 'LIGHT' | 'WATER' | 'WIND'>;
+      }
+
+      export interface Race {
+        op: 'and' | 'or';
+        values: Array<
+          | 'Abidos the Th'
+          | 'Adrian Gecko'
+          | 'Alexis Rhodes'
+          | 'Amnael'
+          | 'Andrew'
+          | 'Aqua'
+          | 'Arkana'
+          | 'Aster Phoenix'
+          | 'Axel Brodie'
+          | 'Bastion Misaw'
+          | 'Beast'
+          | 'Beast-Warrior'
+          | 'Bonz'
+          | 'Camula'
+          | 'Chazz Princet'
+          | 'Christine'
+          | 'Chumley Huffi'
+          | 'Continuous'
+          | 'Counter'
+          | 'Creator God'
+          | 'Cyberse'
+          | 'David'
+          | 'Dinosaur'
+          | 'Divine-Beast'
+          | 'Don Zaloog'
+          | 'Dr. Vellian C'
+          | 'Dragon'
+          | 'Emma'
+          | 'Equip'
+          | 'Espa Roba'
+          | 'Fairy'
+          | 'Field'
+          | 'Fiend'
+          | 'Fish'
+          | 'Illusion'
+          | 'Insect'
+          | 'Ishizu'
+          | 'Ishizu Ishtar'
+          | 'Jaden Yuki'
+          | 'Jesse Anderso'
+          | 'Joey'
+          | 'Joey Wheeler'
+          | 'Kagemaru'
+          | 'Kaiba'
+          | 'Keith'
+          | 'Lumis Umbra'
+          | 'Lumis and Umb'
+          | 'Machine'
+          | 'Mai'
+          | 'Mai Valentine'
+          | 'Mako'
+          | 'Nightshroud'
+          | 'Normal'
+          | 'Odion'
+          | 'Paradox Broth'
+          | 'Pegasus'
+          | 'Plant'
+          | 'Psychic'
+          | 'Pyro'
+          | 'Quick-Play'
+          | 'Reptile'
+          | 'Rex'
+          | 'Ritual'
+          | 'Rock'
+          | 'Sea Serpent'
+          | 'Seto Kaiba'
+          | 'Spellcaster'
+          | 'Syrus Truesda'
+          | 'Tania'
+          | 'Tea Gardner'
+          | 'The Supreme K'
+          | 'Thelonious Vi'
+          | 'Thunder'
+          | 'Titan'
+          | 'Tyranno Hassl'
+          | 'Warrior'
+          | 'Weevil'
+          | 'Winged Beast'
+          | 'Wyrm'
+          | 'Yami Bakura'
+          | 'Yami Marik'
+          | 'Yami Yugi'
+          | 'Yubel'
+          | 'Yugi'
+          | 'Zane Truesdal'
+          | 'Zombie'
+        >;
+      }
+
+      export interface LinkMarkers {
+        op: 'and' | 'or';
+        values: Array<
+          'Top-Left' | 'Top' | 'Top-Right' | 'Left' | 'Right' | 'Bottom-Left' | 'Bottom' | 'Bottom-Right'
+        >;
+      }
+
+      export interface Languages {
+        op: 'and' | 'or';
+        values: Array<
+          | 'en'
+          | 'fr'
+          | 'de'
+          | 'it'
+          | 'es'
+          | 'nl'
+          | 'pl'
+          | 'grc'
+          | 'ar'
+          | 'zh-Hans'
+          | 'zh-Hant'
+          | 'zh-cn'
+          | 'he'
+          | 'ja'
+          | 'ko'
+          | 'th'
+          | 'id'
+          | 'la'
+          | 'art-x-phyrexian'
+          | 'pt-BR'
+          | 'pt-PT'
+          | 'ru'
+          | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -2615,6 +3065,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -2852,6 +3304,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -3086,6 +3540,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -3271,6 +3727,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -3574,6 +4032,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -3942,6 +4402,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -4125,6 +4587,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -4670,6 +5134,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -4888,6 +5354,7 @@ export namespace LineSearchParams {
           | 'Super Special'
           | 'Over Super Rare'
           | 'Trial Deck'
+          | 'Trial Deck Rare'
           | 'Trial Deck Special'
           | 'Trial Deck Super Rare'
           | 'Promo'
@@ -4930,6 +5397,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -5084,6 +5553,8 @@ export namespace LineSearchParams {
           | 'pt-PT'
           | 'ru'
           | 'sa'
+          | 'cs'
+          | 'hu'
         >;
       }
 
@@ -5137,6 +5608,175 @@ export namespace LineSearchParams {
         max: number;
       }
     }
+  }
+
+  export interface DreamlandTcg {
+    game: 'dreamland';
+    /**
+     * @default {}
+     */
+    filters?: DreamlandTcg.Filters;
+  }
+
+  export namespace DreamlandTcg {
+    export interface Filters {
+      name?: Filters.Name;
+      rarity?: Filters.Rarity;
+      finish?: Filters.Finish;
+      finishes?: Filters.Finishes;
+      languages?: Filters.Languages;
+      cardType?: Filters.CardType;
+      cardClass?: Filters.CardClass;
+      abilityType?: Filters.AbilityType;
+      rank?: Filters.Rank;
+      aura?: Filters.Aura | Filters.Aura2;
+      force?: Filters.Force | Filters.Force2;
+      comboBonus?: Filters.ComboBonus | Filters.ComboBonus2;
+    }
+
+    export namespace Filters {
+      export interface Name {
+        value: string;
+      }
+
+      export interface Rarity {
+        op: 'and' | 'or';
+        values: Array<
+          'Banale' | 'Peu banale' | "Kibrill'" | 'Crazy' | 'Dream' | 'Promo' | 'Initiation' | 'Winner'
+        >;
+      }
+
+      export interface Finish {
+        op: 'and' | 'or';
+        values: Array<'Standard'>;
+      }
+
+      export interface Finishes {
+        op: 'and' | 'or';
+        values: Array<'Standard'>;
+      }
+
+      export interface Languages {
+        op: 'and' | 'or';
+        values: Array<
+          | 'en'
+          | 'fr'
+          | 'de'
+          | 'it'
+          | 'es'
+          | 'nl'
+          | 'pl'
+          | 'grc'
+          | 'ar'
+          | 'zh-Hans'
+          | 'zh-Hant'
+          | 'zh-cn'
+          | 'he'
+          | 'ja'
+          | 'ko'
+          | 'th'
+          | 'id'
+          | 'la'
+          | 'art-x-phyrexian'
+          | 'pt-BR'
+          | 'pt-PT'
+          | 'ru'
+          | 'sa'
+          | 'cs'
+          | 'hu'
+        >;
+      }
+
+      export interface CardType {
+        op: 'and' | 'or';
+        values: Array<'Perso' | 'Kick' | 'Soutien' | 'Lieu'>;
+      }
+
+      export interface CardClass {
+        op: 'and' | 'or';
+        values: Array<'Voyageur' | 'Créature'>;
+      }
+
+      export interface AbilityType {
+        op: 'and' | 'or';
+        values: Array<'Capacité' | 'Dégât'>;
+      }
+
+      export interface Rank {
+        op: 'and' | 'or';
+        values: Array<'B' | 'M' | 'S' | 'Star'>;
+      }
+
+      export interface Aura {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface Aura2 {
+        min: number;
+        max: number;
+      }
+
+      export interface Force {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface Force2 {
+        min: number;
+        max: number;
+      }
+
+      export interface ComboBonus {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface ComboBonus2 {
+        min: number;
+        max: number;
+      }
+    }
+  }
+
+  export interface MarketPrice {
+    /**
+     * Lowest market price per card to include, inclusive, as a decimal in the currency of your market (EUR for Europe, USD for North America).
+     * @minimum 0
+     */
+    min?: number;
+    /**
+     * Highest market price per card to include, inclusive.
+     * @minimum 0
+     */
+    max?: number;
+  }
+
+  export interface PriceVsMarket {
+    /**
+     * Lowest distance of the listing price from the market price to include, in percent, inclusive.
+     */
+    minPercent?: number;
+    /**
+     * Highest distance of the listing price from the market price to include, in percent, inclusive.
+     */
+    maxPercent?: number;
+  }
+
+  export interface MarketChange {
+    /**
+     * `day`, `week` or `month`: the span over which the market price movement is measured.
+     * @default week
+     */
+    period?: 'day' | 'week' | 'month';
+    /**
+     * Lowest movement to include, in percent, inclusive. Negative for a drop.
+     */
+    minPercent?: number;
+    /**
+     * Highest movement to include, in percent, inclusive.
+     */
+    maxPercent?: number;
   }
 }
 
@@ -5222,6 +5862,14 @@ export namespace LineSearchResponse {
      * @format date-time
      */
     updatedAt: string;
+    /**
+     * The line's market price and its movement. Present when `includeMarket` is `true`; `null` for a line with no market price, such as a graded card.
+     */
+    market?: Data.Market | null;
+    /**
+     * How far the listing price is from the market price, in percent, to one decimal: `(price / market price - 1) × 100`. Present when `includeMarket` is `true`; `null` for a line that is not for sale or has no market price.
+     */
+    priceVsMarketPercent?: number | null;
   }
 
   export namespace Data {
@@ -5251,10 +5899,59 @@ export namespace LineSearchResponse {
        */
       height: number;
     }
+
+    export interface Market {
+      /**
+       * The line's market price per card, adjusted for its condition and finish, in the currency of your market (EUR for Europe, USD for North America).
+       */
+      price: Market.Price;
+      /**
+       * The same market price converted to your seller currency at the daily rate.
+       */
+      priceInSellerCurrency: Market.PriceInSellerCurrency;
+      /**
+       * How the market price moved over the last day, week and month.
+       */
+      change: Market.Change;
+    }
+
+    export namespace Market {
+      export interface Price {
+        /**
+         * Decimal amount in the currency's major unit (e.g. `5.23` for €5.23). 2 decimal places for EUR/USD/GBP/CHF/CAD/AUD.
+         */
+        amount: number;
+        currency: 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'SEK' | 'DKK' | 'NOK' | 'PLN' | 'HUF';
+      }
+
+      export interface PriceInSellerCurrency {
+        /**
+         * Decimal amount in the currency's major unit (e.g. `5.23` for €5.23). 2 decimal places for EUR/USD/GBP/CHF/CAD/AUD.
+         */
+        amount: number;
+        currency: 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'SEK' | 'DKK' | 'NOK' | 'PLN' | 'HUF';
+      }
+
+      export interface Change {
+        /**
+         * How far the market price moved over the period, in percent (`-1.2` is minus 1.2%). `null` when there is not enough history.
+         */
+        day: number | null;
+        /**
+         * How far the market price moved over the period, in percent (`-1.2` is minus 1.2%). `null` when there is not enough history.
+         */
+        week: number | null;
+        /**
+         * How far the market price moved over the period, in percent (`-1.2` is minus 1.2%). `null` when there is not enough history.
+         */
+        month: number | null;
+      }
+    }
   }
 
   export interface Pagination {
     /**
+     * The offset of this page; `0` on a page reached with a `cursor`.
      * @minimum 0
      * @maximum 9007199254740991
      */
@@ -5265,11 +5962,16 @@ export namespace LineSearchResponse {
      */
     limit: number;
     /**
+     * How many lines match the filters. Always present on a request without `cursor`; on a request with one, present only when `includeTotal` is `true`, otherwise `null`.
      * @minimum 0
      * @maximum 9007199254740991
      */
-    total: number;
+    total: number | null;
     hasMore: boolean;
+    /**
+     * Send this as `cursor`, with the same filters and sort, to get the next page. `null` on the last page.
+     */
+    nextCursor: string | null;
   }
 }
 
@@ -5510,7 +6212,8 @@ export namespace LineUpdateParams {
       | 'CollectAura'
       | 'MTGGrade'
       | 'PureGrading'
-      | 'SGS';
+      | 'SGS'
+      | 'AceGrading';
     /**
      * The certification number printed on the slab. Omit it when you do not have it.
      * @minLength 1
@@ -5783,7 +6486,7 @@ export interface LineDeleteResponse {
 
 export interface LineSetMediaParams {
   /**
-   * The photos the line should carry — between 1 and 10 image files, any `image/*` content type, each up to 10 MB.
+   * The photos the line should carry — between 1 and 10 image files, each a JPEG, PNG, WebP, GIF or HEIC/HEIF file up to 10 MB.
    * @minItems 1
    * @maxItems 10
    */

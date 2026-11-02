@@ -66,21 +66,30 @@ export class Lists extends APIResource {
   /**
    * Returns a single list of yours in full — its metadata and every card in it.
    *
+   * A list can hold 2000 cards. Pass `includeItems=false` to get the metadata alone, and read the cards page by page with `GET /v1/lists/{listId}/items`.
+   *
    * To enumerate your lists without their cards, see `GET /v1/lists`.
    *
    * Requires the `lists:read` scope.
    *
    * @param {string} listID - The list's id, from `GET /v1/lists` or `POST /v1/lists`. Path parameter.
+   * @param {ListRetrieveParams} [query] - The parameters to send with the request.
    * @param {RequestOptions} [options] - Options to apply to the request, such as headers and an abort signal.
    * @returns {APIPromise<ListRetrieveResponse>} List returned.
    *
    * @example
    * ```ts
-   * const list = await client.lists.retrieve('listId');
+   * const list = await client.lists.retrieve('listId', {
+   *   includeItems: true,
+   * });
    * ```
    */
-  retrieve(listID: string, options?: RequestOptions): APIPromise<ListRetrieveResponse> {
-    return this._client.get(__scalarPath`/lists/${listID}`, options);
+  retrieve(
+    listID: string,
+    query: ListRetrieveParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<ListRetrieveResponse> {
+    return this._client.get(__scalarPath`/lists/${listID}`, { query, ...options });
   }
 
   /**
@@ -416,6 +425,14 @@ export namespace ListCreateResponse {
   }
 }
 
+export interface ListRetrieveParams {
+  /**
+   * `false` returns the list without its cards: `items` is empty while `itemCount` and `totalQuantity` still carry the true counts. Read the cards page by page with `GET /v1/lists/{listId}/items`.
+   * @default true
+   */
+  includeItems?: boolean;
+}
+
 export interface ListRetrieveResponse {
   /**
    * Stable opaque identifier for this list. Do not parse.
@@ -621,7 +638,9 @@ export interface ListUpdateParams {
     | 'pt-BR'
     | 'pt-PT'
     | 'ru'
-    | 'sa';
+    | 'sa'
+    | 'cs'
+    | 'hu';
   /**
    * The currency your `wantPrice` and `sellPrice` values are in. Omit to leave it unchanged.
    */
@@ -827,6 +846,7 @@ export declare namespace Lists {
     type ListDeleteResponse as ListDeleteResponse,
     type ListListParams as ListListParams,
     type ListCreateParams as ListCreateParams,
+    type ListRetrieveParams as ListRetrieveParams,
     type ListUpdateParams as ListUpdateParams,
     type ListDeleteParams as ListDeleteParams,
   };
