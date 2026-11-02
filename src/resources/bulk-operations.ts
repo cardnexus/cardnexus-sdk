@@ -300,19 +300,19 @@ export namespace BulkOperationImportResponse {
      */
     id: string;
     /**
-     * Whether this job is an `import` or an `export`.
+     * Whether this job is an `import`, an `export` or a bulk `edit` started with `POST /v1/inventory/bulk/edit/apply`.
      */
-    kind: 'import' | 'export';
+    kind: 'import' | 'export' | 'edit';
     /**
      * Where the job stands: `pending` (queued, not started), `processing` (running), `completed` (finished — results are ready), or `failed` (stopped before finishing; see `errorMessage`).
      */
     status: 'pending' | 'processing' | 'completed' | 'failed';
     /**
-     * The file format the job reads or writes: `json` or `csv`.
+     * The file format the job reads or writes: `json` or `csv`. `null` on bulk edit jobs, which use no file.
      */
-    format: 'json' | 'csv';
+    format: 'json' | 'csv' | null;
     /**
-     * Import jobs: `upsert` or `replace`. `null` on export jobs.
+     * Import jobs: `upsert` or `replace`. `null` on export and bulk edit jobs.
      */
     mode: 'upsert' | 'replace' | null;
     /**
@@ -334,7 +334,7 @@ export namespace BulkOperationImportResponse {
      */
     downloadUrl: string | null;
     /**
-     * Import jobs: a temporary link to a JSON report listing every failed row (`row` index, `code`, `message`) once the job completes with failures. The link stops working 15 minutes after it was issued — fetch the job again for a fresh one. `null` when every row succeeded.
+     * Import and bulk edit jobs: a temporary link to a JSON report listing every failed row (`row` index, `code`, `message`; bulk edits also name the `inventoryId`) once the job completes with failures. The link stops working 15 minutes after it was issued — fetch the job again for a fresh one. `null` when every row succeeded.
      */
     errorReportUrl: string | null;
     /**
@@ -352,7 +352,7 @@ export namespace BulkOperationImportResponse {
   export namespace Job {
     export interface Counts {
       /**
-       * How many rows the job covers.
+       * How many rows the job covers. For a bulk edit, the number of lines the confirmed preview matched.
        * @minimum -9007199254740991
        * @maximum 9007199254740991
        */
@@ -369,6 +369,12 @@ export namespace BulkOperationImportResponse {
        * @maximum 9007199254740991
        */
       failed: number;
+      /**
+       * Bulk edits only: lines left unchanged because they were sold, removed or changed after the preview, could not take the change, or already had the new value. `succeeded + failed + skipped` equals `total` once the job completes. Absent on imports and exports.
+       * @minimum -9007199254740991
+       * @maximum 9007199254740991
+       */
+      skipped?: number;
     }
   }
 }
@@ -399,19 +405,19 @@ export namespace BulkOperationImportCardmarketResponse {
      */
     id: string;
     /**
-     * Whether this job is an `import` or an `export`.
+     * Whether this job is an `import`, an `export` or a bulk `edit` started with `POST /v1/inventory/bulk/edit/apply`.
      */
-    kind: 'import' | 'export';
+    kind: 'import' | 'export' | 'edit';
     /**
      * Where the job stands: `pending` (queued, not started), `processing` (running), `completed` (finished — results are ready), or `failed` (stopped before finishing; see `errorMessage`).
      */
     status: 'pending' | 'processing' | 'completed' | 'failed';
     /**
-     * The file format the job reads or writes: `json` or `csv`.
+     * The file format the job reads or writes: `json` or `csv`. `null` on bulk edit jobs, which use no file.
      */
-    format: 'json' | 'csv';
+    format: 'json' | 'csv' | null;
     /**
-     * Import jobs: `upsert` or `replace`. `null` on export jobs.
+     * Import jobs: `upsert` or `replace`. `null` on export and bulk edit jobs.
      */
     mode: 'upsert' | 'replace' | null;
     /**
@@ -433,7 +439,7 @@ export namespace BulkOperationImportCardmarketResponse {
      */
     downloadUrl: string | null;
     /**
-     * Import jobs: a temporary link to a JSON report listing every failed row (`row` index, `code`, `message`) once the job completes with failures. The link stops working 15 minutes after it was issued — fetch the job again for a fresh one. `null` when every row succeeded.
+     * Import and bulk edit jobs: a temporary link to a JSON report listing every failed row (`row` index, `code`, `message`; bulk edits also name the `inventoryId`) once the job completes with failures. The link stops working 15 minutes after it was issued — fetch the job again for a fresh one. `null` when every row succeeded.
      */
     errorReportUrl: string | null;
     /**
@@ -451,7 +457,7 @@ export namespace BulkOperationImportCardmarketResponse {
   export namespace Job {
     export interface Counts {
       /**
-       * How many rows the job covers.
+       * How many rows the job covers. For a bulk edit, the number of lines the confirmed preview matched.
        * @minimum -9007199254740991
        * @maximum 9007199254740991
        */
@@ -468,6 +474,12 @@ export namespace BulkOperationImportCardmarketResponse {
        * @maximum 9007199254740991
        */
       failed: number;
+      /**
+       * Bulk edits only: lines left unchanged because they were sold, removed or changed after the preview, could not take the change, or already had the new value. `succeeded + failed + skipped` equals `total` once the job completes. Absent on imports and exports.
+       * @minimum -9007199254740991
+       * @maximum 9007199254740991
+       */
+      skipped?: number;
     }
   }
 }
@@ -498,19 +510,19 @@ export namespace BulkOperationImportTcgplayerResponse {
      */
     id: string;
     /**
-     * Whether this job is an `import` or an `export`.
+     * Whether this job is an `import`, an `export` or a bulk `edit` started with `POST /v1/inventory/bulk/edit/apply`.
      */
-    kind: 'import' | 'export';
+    kind: 'import' | 'export' | 'edit';
     /**
      * Where the job stands: `pending` (queued, not started), `processing` (running), `completed` (finished — results are ready), or `failed` (stopped before finishing; see `errorMessage`).
      */
     status: 'pending' | 'processing' | 'completed' | 'failed';
     /**
-     * The file format the job reads or writes: `json` or `csv`.
+     * The file format the job reads or writes: `json` or `csv`. `null` on bulk edit jobs, which use no file.
      */
-    format: 'json' | 'csv';
+    format: 'json' | 'csv' | null;
     /**
-     * Import jobs: `upsert` or `replace`. `null` on export jobs.
+     * Import jobs: `upsert` or `replace`. `null` on export and bulk edit jobs.
      */
     mode: 'upsert' | 'replace' | null;
     /**
@@ -532,7 +544,7 @@ export namespace BulkOperationImportTcgplayerResponse {
      */
     downloadUrl: string | null;
     /**
-     * Import jobs: a temporary link to a JSON report listing every failed row (`row` index, `code`, `message`) once the job completes with failures. The link stops working 15 minutes after it was issued — fetch the job again for a fresh one. `null` when every row succeeded.
+     * Import and bulk edit jobs: a temporary link to a JSON report listing every failed row (`row` index, `code`, `message`; bulk edits also name the `inventoryId`) once the job completes with failures. The link stops working 15 minutes after it was issued — fetch the job again for a fresh one. `null` when every row succeeded.
      */
     errorReportUrl: string | null;
     /**
@@ -550,7 +562,7 @@ export namespace BulkOperationImportTcgplayerResponse {
   export namespace Job {
     export interface Counts {
       /**
-       * How many rows the job covers.
+       * How many rows the job covers. For a bulk edit, the number of lines the confirmed preview matched.
        * @minimum -9007199254740991
        * @maximum 9007199254740991
        */
@@ -567,6 +579,12 @@ export namespace BulkOperationImportTcgplayerResponse {
        * @maximum 9007199254740991
        */
       failed: number;
+      /**
+       * Bulk edits only: lines left unchanged because they were sold, removed or changed after the preview, could not take the change, or already had the new value. `succeeded + failed + skipped` equals `total` once the job completes. Absent on imports and exports.
+       * @minimum -9007199254740991
+       * @maximum 9007199254740991
+       */
+      skipped?: number;
     }
   }
 }
@@ -597,19 +615,19 @@ export namespace BulkOperationImportTcgPowerToolsResponse {
      */
     id: string;
     /**
-     * Whether this job is an `import` or an `export`.
+     * Whether this job is an `import`, an `export` or a bulk `edit` started with `POST /v1/inventory/bulk/edit/apply`.
      */
-    kind: 'import' | 'export';
+    kind: 'import' | 'export' | 'edit';
     /**
      * Where the job stands: `pending` (queued, not started), `processing` (running), `completed` (finished — results are ready), or `failed` (stopped before finishing; see `errorMessage`).
      */
     status: 'pending' | 'processing' | 'completed' | 'failed';
     /**
-     * The file format the job reads or writes: `json` or `csv`.
+     * The file format the job reads or writes: `json` or `csv`. `null` on bulk edit jobs, which use no file.
      */
-    format: 'json' | 'csv';
+    format: 'json' | 'csv' | null;
     /**
-     * Import jobs: `upsert` or `replace`. `null` on export jobs.
+     * Import jobs: `upsert` or `replace`. `null` on export and bulk edit jobs.
      */
     mode: 'upsert' | 'replace' | null;
     /**
@@ -631,7 +649,7 @@ export namespace BulkOperationImportTcgPowerToolsResponse {
      */
     downloadUrl: string | null;
     /**
-     * Import jobs: a temporary link to a JSON report listing every failed row (`row` index, `code`, `message`) once the job completes with failures. The link stops working 15 minutes after it was issued — fetch the job again for a fresh one. `null` when every row succeeded.
+     * Import and bulk edit jobs: a temporary link to a JSON report listing every failed row (`row` index, `code`, `message`; bulk edits also name the `inventoryId`) once the job completes with failures. The link stops working 15 minutes after it was issued — fetch the job again for a fresh one. `null` when every row succeeded.
      */
     errorReportUrl: string | null;
     /**
@@ -649,7 +667,7 @@ export namespace BulkOperationImportTcgPowerToolsResponse {
   export namespace Job {
     export interface Counts {
       /**
-       * How many rows the job covers.
+       * How many rows the job covers. For a bulk edit, the number of lines the confirmed preview matched.
        * @minimum -9007199254740991
        * @maximum 9007199254740991
        */
@@ -666,6 +684,12 @@ export namespace BulkOperationImportTcgPowerToolsResponse {
        * @maximum 9007199254740991
        */
       failed: number;
+      /**
+       * Bulk edits only: lines left unchanged because they were sold, removed or changed after the preview, could not take the change, or already had the new value. `succeeded + failed + skipped` equals `total` once the job completes. Absent on imports and exports.
+       * @minimum -9007199254740991
+       * @maximum 9007199254740991
+       */
+      skipped?: number;
     }
   }
 }
@@ -722,6 +746,18 @@ export namespace BulkOperationExportParams {
      * @minLength 1
      */
     commentContains?: string;
+    /**
+     * Return only the lines with these identifiers (1–200), as returned in `id` on every line.
+     * @minItems 1
+     * @maxItems 200
+     */
+    inventoryIds?: Array<string>;
+    /**
+     * Return only the lines whose `customId` equals one of these values (1–200), matched case-insensitively.
+     * @minItems 1
+     * @maxItems 200
+     */
+    customIds?: Array<string>;
     /**
      * Return only lines for these products (1–200). Product ids come from `GET /v1/products`.
      * @minItems 1
@@ -791,6 +827,7 @@ export namespace BulkOperationExportParams {
       | Filters.Wankul
       | Filters.OnePiece
       | Filters.YuGiOh
+      | Filters.YuGiOhOcg
       | Filters.Rise
       | Filters.Riftbound
       | Filters.Drakerion
@@ -806,7 +843,8 @@ export namespace BulkOperationExportParams {
       | Filters.GundamCardGame
       | Filters.ChronoCore
       | Filters.PalworldTcg
-      | Filters.AzukiTcg;
+      | Filters.AzukiTcg
+      | Filters.DreamlandTcg;
   }
 
   export namespace Filters {
@@ -1093,6 +1131,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -1186,6 +1226,7 @@ export namespace BulkOperationExportParams {
             | 'Action'
             | 'Alien'
             | 'Ally'
+            | 'Boss'
             | 'Broom'
             | 'Captain'
             | 'Colossus'
@@ -1268,6 +1309,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
       }
@@ -1348,6 +1391,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
       }
@@ -1559,6 +1604,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -1741,6 +1788,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -1879,6 +1928,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
       }
@@ -2000,6 +2051,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -2115,6 +2168,10 @@ export namespace BulkOperationExportParams {
             | 'Millennium Secret Rare'
             | 'Millennium Gold Rare'
             | 'Grand Master Rare'
+            | '20th Secret Rare'
+            | 'Kaiba Corporation Common'
+            | 'Kaiba Corporation Rare'
+            | 'Kaiba Corporation Ultra Rare'
             | 'Short Print'
             | 'Super Short Print'
             | 'Speed Duel Skill'
@@ -2149,6 +2206,10 @@ export namespace BulkOperationExportParams {
             | 'Misprint'
             | 'Oversized'
             | 'Limited Edition'
+            | 'Reprint'
+            | 'Classic Style'
+            | 'Logo'
+            | 'Original Layout'
           >;
         }
 
@@ -2327,6 +2388,350 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
+          >;
+        }
+
+        export interface Atk {
+          op: '=' | '>' | '<';
+          value: number;
+        }
+
+        export interface Def {
+          op: '=' | '>' | '<';
+          value: number;
+        }
+
+        export interface Level {
+          op: '=' | '>' | '<';
+          value: number;
+        }
+
+        export interface Rank {
+          op: '=' | '>' | '<';
+          value: number;
+        }
+
+        export interface Scale {
+          op: '=' | '>' | '<';
+          value: number;
+        }
+
+        export interface LinkRating {
+          op: '=' | '>' | '<';
+          value: number;
+        }
+      }
+    }
+
+    export interface YuGiOhOcg {
+      game: 'ygo-ocg';
+      /**
+       * @default {}
+       */
+      filters?: YuGiOhOcg.Filters;
+    }
+
+    export namespace YuGiOhOcg {
+      export interface Filters {
+        name?: Filters.Name;
+        rarity?: Filters.Rarity;
+        variant?: Filters.Variant;
+        finish?: Filters.Finish;
+        finishes?: Filters.Finishes;
+        type?: Filters.Type;
+        attribute?: Filters.Attribute;
+        race?: Filters.Race;
+        linkMarkers?: Filters.LinkMarkers;
+        languages?: Filters.Languages;
+        atk?: Filters.Atk;
+        def?: Filters.Def;
+        level?: Filters.Level;
+        rank?: Filters.Rank;
+        scale?: Filters.Scale;
+        linkRating?: Filters.LinkRating;
+      }
+
+      export namespace Filters {
+        export interface Name {
+          value: string;
+        }
+
+        export interface Rarity {
+          op: 'and' | 'or';
+          values: Array<
+            | 'Common'
+            | 'Rare'
+            | 'Super Rare'
+            | 'Ultra Rare'
+            | 'Secret Rare'
+            | 'Ultimate Rare'
+            | 'Ghost Rare'
+            | 'Ghost/Gold Rare'
+            | 'Gold Rare'
+            | 'Gold Secret Rare'
+            | 'Premium Gold Rare'
+            | 'Platinum Rare'
+            | 'Platinum Secret Rare'
+            | 'Prismatic Secret Rare'
+            | 'Prismatic Ultimate Rare'
+            | "Prismatic Collector's Rare"
+            | 'Quarter Century Secret Rare'
+            | '10000 Secret Rare'
+            | 'Starlight Rare'
+            | "Collector's Rare"
+            | 'Extra Secret Rare'
+            | 'Ultra Secret Rare'
+            | 'Starfoil Rare'
+            | 'Shatterfoil Rare'
+            | 'Mosaic Rare'
+            | 'Holographic Rare'
+            | 'Parallel Rare'
+            | 'Normal Parallel Rare'
+            | 'Super Parallel Rare'
+            | 'Ultra Parallel Rare'
+            | 'Secret Parallel Rare'
+            | 'Duel Terminal Normal Parallel Rare'
+            | 'Duel Terminal Rare Parallel Rare'
+            | 'Duel Terminal Super Parallel Rare'
+            | 'Duel Terminal Ultra Parallel Rare'
+            | 'Duel Terminal Secret Parallel Rare'
+            | 'Duel Terminal Technology Common'
+            | 'Duel Terminal Technology Ultra Rare'
+            | 'Emblazoned Rare'
+            | 'Emblazoned Ultra Rare'
+            | 'Emblazoned Secret Rare'
+            | "Ultra Pharaoh's Rare"
+            | "Secret Pharaoh's Rare"
+            | 'Millennium Rare'
+            | 'Millennium Super Rare'
+            | 'Millennium Ultra Rare'
+            | 'Millennium Secret Rare'
+            | 'Millennium Gold Rare'
+            | 'Grand Master Rare'
+            | '20th Secret Rare'
+            | 'Kaiba Corporation Common'
+            | 'Kaiba Corporation Rare'
+            | 'Kaiba Corporation Ultra Rare'
+            | 'Short Print'
+            | 'Super Short Print'
+            | 'Speed Duel Skill'
+            | 'Token'
+            | 'Promo'
+          >;
+        }
+
+        export interface Variant {
+          op: 'and' | 'or';
+          values: Array<
+            | 'Alternate Art'
+            | 'New Art'
+            | 'Art 7'
+            | 'Art 8'
+            | 'HERO Art'
+            | 'Extended Art'
+            | 'Japanese Artwork'
+            | 'Blue'
+            | 'Green'
+            | 'Purple'
+            | 'Red'
+            | 'Silver'
+            | 'Bronze'
+            | 'Yellow'
+            | 'Orange'
+            | 'Black'
+            | 'OTS Stamp'
+            | 'Judge Stamp'
+            | 'Regional Stamp'
+            | 'Stamp'
+            | 'Misprint'
+            | 'Oversized'
+            | 'Limited Edition'
+            | 'Reprint'
+            | 'Classic Style'
+            | 'Logo'
+            | 'Original Layout'
+          >;
+        }
+
+        export interface Finish {
+          op: 'and' | 'or';
+          values: Array<'Standard'>;
+        }
+
+        export interface Finishes {
+          op: 'and' | 'or';
+          values: Array<'Standard'>;
+        }
+
+        export interface Type {
+          op: 'and' | 'or';
+          values: Array<
+            | 'Effect Monster'
+            | 'Flip Effect Monster'
+            | 'Flip Tuner Effect Monster'
+            | 'Fusion Monster'
+            | 'Gemini Monster'
+            | 'Link Monster'
+            | 'Normal Monster'
+            | 'Normal Tuner Monster'
+            | 'Pendulum Effect Fusion Monster'
+            | 'Pendulum Effect Monster'
+            | 'Pendulum Effect Ritual Monster'
+            | 'Pendulum Flip Effect Monster'
+            | 'Pendulum Normal Monster'
+            | 'Pendulum Tuner Effect Monster'
+            | 'Ritual Effect Monster'
+            | 'Ritual Monster'
+            | 'Skill Card'
+            | 'Spell Card'
+            | 'Spirit Monster'
+            | 'Synchro Monster'
+            | 'Synchro Pendulum Effect Monster'
+            | 'Synchro Tuner Monster'
+            | 'Token'
+            | 'Toon Monster'
+            | 'Trap Card'
+            | 'Tuner Monster'
+            | 'Union Effect Monster'
+            | 'XYZ Monster'
+            | 'XYZ Pendulum Effect Monster'
+          >;
+        }
+
+        export interface Attribute {
+          op: 'and' | 'or';
+          values: Array<'DARK' | 'DIVINE' | 'EARTH' | 'FIRE' | 'LIGHT' | 'WATER' | 'WIND'>;
+        }
+
+        export interface Race {
+          op: 'and' | 'or';
+          values: Array<
+            | 'Abidos the Th'
+            | 'Adrian Gecko'
+            | 'Alexis Rhodes'
+            | 'Amnael'
+            | 'Andrew'
+            | 'Aqua'
+            | 'Arkana'
+            | 'Aster Phoenix'
+            | 'Axel Brodie'
+            | 'Bastion Misaw'
+            | 'Beast'
+            | 'Beast-Warrior'
+            | 'Bonz'
+            | 'Camula'
+            | 'Chazz Princet'
+            | 'Christine'
+            | 'Chumley Huffi'
+            | 'Continuous'
+            | 'Counter'
+            | 'Creator God'
+            | 'Cyberse'
+            | 'David'
+            | 'Dinosaur'
+            | 'Divine-Beast'
+            | 'Don Zaloog'
+            | 'Dr. Vellian C'
+            | 'Dragon'
+            | 'Emma'
+            | 'Equip'
+            | 'Espa Roba'
+            | 'Fairy'
+            | 'Field'
+            | 'Fiend'
+            | 'Fish'
+            | 'Illusion'
+            | 'Insect'
+            | 'Ishizu'
+            | 'Ishizu Ishtar'
+            | 'Jaden Yuki'
+            | 'Jesse Anderso'
+            | 'Joey'
+            | 'Joey Wheeler'
+            | 'Kagemaru'
+            | 'Kaiba'
+            | 'Keith'
+            | 'Lumis Umbra'
+            | 'Lumis and Umb'
+            | 'Machine'
+            | 'Mai'
+            | 'Mai Valentine'
+            | 'Mako'
+            | 'Nightshroud'
+            | 'Normal'
+            | 'Odion'
+            | 'Paradox Broth'
+            | 'Pegasus'
+            | 'Plant'
+            | 'Psychic'
+            | 'Pyro'
+            | 'Quick-Play'
+            | 'Reptile'
+            | 'Rex'
+            | 'Ritual'
+            | 'Rock'
+            | 'Sea Serpent'
+            | 'Seto Kaiba'
+            | 'Spellcaster'
+            | 'Syrus Truesda'
+            | 'Tania'
+            | 'Tea Gardner'
+            | 'The Supreme K'
+            | 'Thelonious Vi'
+            | 'Thunder'
+            | 'Titan'
+            | 'Tyranno Hassl'
+            | 'Warrior'
+            | 'Weevil'
+            | 'Winged Beast'
+            | 'Wyrm'
+            | 'Yami Bakura'
+            | 'Yami Marik'
+            | 'Yami Yugi'
+            | 'Yubel'
+            | 'Yugi'
+            | 'Zane Truesdal'
+            | 'Zombie'
+          >;
+        }
+
+        export interface LinkMarkers {
+          op: 'and' | 'or';
+          values: Array<
+            'Top-Left' | 'Top' | 'Top-Right' | 'Left' | 'Right' | 'Bottom-Left' | 'Bottom' | 'Bottom-Right'
+          >;
+        }
+
+        export interface Languages {
+          op: 'and' | 'or';
+          values: Array<
+            | 'en'
+            | 'fr'
+            | 'de'
+            | 'it'
+            | 'es'
+            | 'nl'
+            | 'pl'
+            | 'grc'
+            | 'ar'
+            | 'zh-Hans'
+            | 'zh-Hant'
+            | 'zh-cn'
+            | 'he'
+            | 'ja'
+            | 'ko'
+            | 'th'
+            | 'id'
+            | 'la'
+            | 'art-x-phyrexian'
+            | 'pt-BR'
+            | 'pt-PT'
+            | 'ru'
+            | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -2491,6 +2896,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -2730,6 +3137,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -2964,6 +3373,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -3149,6 +3560,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -3452,6 +3865,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -3820,6 +4235,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -4011,6 +4428,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -4556,6 +4975,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -4774,6 +5195,7 @@ export namespace BulkOperationExportParams {
             | 'Super Special'
             | 'Over Super Rare'
             | 'Trial Deck'
+            | 'Trial Deck Rare'
             | 'Trial Deck Special'
             | 'Trial Deck Super Rare'
             | 'Promo'
@@ -4816,6 +5238,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -4970,6 +5394,8 @@ export namespace BulkOperationExportParams {
             | 'pt-PT'
             | 'ru'
             | 'sa'
+            | 'cs'
+            | 'hu'
           >;
         }
 
@@ -5024,6 +5450,135 @@ export namespace BulkOperationExportParams {
         }
       }
     }
+
+    export interface DreamlandTcg {
+      game: 'dreamland';
+      /**
+       * @default {}
+       */
+      filters?: DreamlandTcg.Filters;
+    }
+
+    export namespace DreamlandTcg {
+      export interface Filters {
+        name?: Filters.Name;
+        rarity?: Filters.Rarity;
+        finish?: Filters.Finish;
+        finishes?: Filters.Finishes;
+        languages?: Filters.Languages;
+        cardType?: Filters.CardType;
+        cardClass?: Filters.CardClass;
+        abilityType?: Filters.AbilityType;
+        rank?: Filters.Rank;
+        aura?: Filters.Aura | Filters.Aura2;
+        force?: Filters.Force | Filters.Force2;
+        comboBonus?: Filters.ComboBonus | Filters.ComboBonus2;
+      }
+
+      export namespace Filters {
+        export interface Name {
+          value: string;
+        }
+
+        export interface Rarity {
+          op: 'and' | 'or';
+          values: Array<
+            'Banale' | 'Peu banale' | "Kibrill'" | 'Crazy' | 'Dream' | 'Promo' | 'Initiation' | 'Winner'
+          >;
+        }
+
+        export interface Finish {
+          op: 'and' | 'or';
+          values: Array<'Standard'>;
+        }
+
+        export interface Finishes {
+          op: 'and' | 'or';
+          values: Array<'Standard'>;
+        }
+
+        export interface Languages {
+          op: 'and' | 'or';
+          values: Array<
+            | 'en'
+            | 'fr'
+            | 'de'
+            | 'it'
+            | 'es'
+            | 'nl'
+            | 'pl'
+            | 'grc'
+            | 'ar'
+            | 'zh-Hans'
+            | 'zh-Hant'
+            | 'zh-cn'
+            | 'he'
+            | 'ja'
+            | 'ko'
+            | 'th'
+            | 'id'
+            | 'la'
+            | 'art-x-phyrexian'
+            | 'pt-BR'
+            | 'pt-PT'
+            | 'ru'
+            | 'sa'
+            | 'cs'
+            | 'hu'
+          >;
+        }
+
+        export interface CardType {
+          op: 'and' | 'or';
+          values: Array<'Perso' | 'Kick' | 'Soutien' | 'Lieu'>;
+        }
+
+        export interface CardClass {
+          op: 'and' | 'or';
+          values: Array<'Voyageur' | 'Créature'>;
+        }
+
+        export interface AbilityType {
+          op: 'and' | 'or';
+          values: Array<'Capacité' | 'Dégât'>;
+        }
+
+        export interface Rank {
+          op: 'and' | 'or';
+          values: Array<'B' | 'M' | 'S' | 'Star'>;
+        }
+
+        export interface Aura {
+          op: '=' | '>' | '<';
+          value: number;
+        }
+
+        export interface Aura2 {
+          min: number;
+          max: number;
+        }
+
+        export interface Force {
+          op: '=' | '>' | '<';
+          value: number;
+        }
+
+        export interface Force2 {
+          min: number;
+          max: number;
+        }
+
+        export interface ComboBonus {
+          op: '=' | '>' | '<';
+          value: number;
+        }
+
+        export interface ComboBonus2 {
+          min: number;
+          max: number;
+        }
+      }
+    }
   }
 }
 
@@ -5041,19 +5596,19 @@ export namespace BulkOperationExportResponse {
      */
     id: string;
     /**
-     * Whether this job is an `import` or an `export`.
+     * Whether this job is an `import`, an `export` or a bulk `edit` started with `POST /v1/inventory/bulk/edit/apply`.
      */
-    kind: 'import' | 'export';
+    kind: 'import' | 'export' | 'edit';
     /**
      * Where the job stands: `pending` (queued, not started), `processing` (running), `completed` (finished — results are ready), or `failed` (stopped before finishing; see `errorMessage`).
      */
     status: 'pending' | 'processing' | 'completed' | 'failed';
     /**
-     * The file format the job reads or writes: `json` or `csv`.
+     * The file format the job reads or writes: `json` or `csv`. `null` on bulk edit jobs, which use no file.
      */
-    format: 'json' | 'csv';
+    format: 'json' | 'csv' | null;
     /**
-     * Import jobs: `upsert` or `replace`. `null` on export jobs.
+     * Import jobs: `upsert` or `replace`. `null` on export and bulk edit jobs.
      */
     mode: 'upsert' | 'replace' | null;
     /**
@@ -5075,7 +5630,7 @@ export namespace BulkOperationExportResponse {
      */
     downloadUrl: string | null;
     /**
-     * Import jobs: a temporary link to a JSON report listing every failed row (`row` index, `code`, `message`) once the job completes with failures. The link stops working 15 minutes after it was issued — fetch the job again for a fresh one. `null` when every row succeeded.
+     * Import and bulk edit jobs: a temporary link to a JSON report listing every failed row (`row` index, `code`, `message`; bulk edits also name the `inventoryId`) once the job completes with failures. The link stops working 15 minutes after it was issued — fetch the job again for a fresh one. `null` when every row succeeded.
      */
     errorReportUrl: string | null;
     /**
@@ -5093,7 +5648,7 @@ export namespace BulkOperationExportResponse {
   export namespace Job {
     export interface Counts {
       /**
-       * How many rows the job covers.
+       * How many rows the job covers. For a bulk edit, the number of lines the confirmed preview matched.
        * @minimum -9007199254740991
        * @maximum 9007199254740991
        */
@@ -5110,6 +5665,12 @@ export namespace BulkOperationExportResponse {
        * @maximum 9007199254740991
        */
       failed: number;
+      /**
+       * Bulk edits only: lines left unchanged because they were sold, removed or changed after the preview, could not take the change, or already had the new value. `succeeded + failed + skipped` equals `total` once the job completes. Absent on imports and exports.
+       * @minimum -9007199254740991
+       * @maximum 9007199254740991
+       */
+      skipped?: number;
     }
   }
 }
@@ -5347,19 +5908,19 @@ export namespace BulkOperationRetrieveJobResponse {
      */
     id: string;
     /**
-     * Whether this job is an `import` or an `export`.
+     * Whether this job is an `import`, an `export` or a bulk `edit` started with `POST /v1/inventory/bulk/edit/apply`.
      */
-    kind: 'import' | 'export';
+    kind: 'import' | 'export' | 'edit';
     /**
      * Where the job stands: `pending` (queued, not started), `processing` (running), `completed` (finished — results are ready), or `failed` (stopped before finishing; see `errorMessage`).
      */
     status: 'pending' | 'processing' | 'completed' | 'failed';
     /**
-     * The file format the job reads or writes: `json` or `csv`.
+     * The file format the job reads or writes: `json` or `csv`. `null` on bulk edit jobs, which use no file.
      */
-    format: 'json' | 'csv';
+    format: 'json' | 'csv' | null;
     /**
-     * Import jobs: `upsert` or `replace`. `null` on export jobs.
+     * Import jobs: `upsert` or `replace`. `null` on export and bulk edit jobs.
      */
     mode: 'upsert' | 'replace' | null;
     /**
@@ -5381,7 +5942,7 @@ export namespace BulkOperationRetrieveJobResponse {
      */
     downloadUrl: string | null;
     /**
-     * Import jobs: a temporary link to a JSON report listing every failed row (`row` index, `code`, `message`) once the job completes with failures. The link stops working 15 minutes after it was issued — fetch the job again for a fresh one. `null` when every row succeeded.
+     * Import and bulk edit jobs: a temporary link to a JSON report listing every failed row (`row` index, `code`, `message`; bulk edits also name the `inventoryId`) once the job completes with failures. The link stops working 15 minutes after it was issued — fetch the job again for a fresh one. `null` when every row succeeded.
      */
     errorReportUrl: string | null;
     /**
@@ -5399,7 +5960,7 @@ export namespace BulkOperationRetrieveJobResponse {
   export namespace Job {
     export interface Counts {
       /**
-       * How many rows the job covers.
+       * How many rows the job covers. For a bulk edit, the number of lines the confirmed preview matched.
        * @minimum -9007199254740991
        * @maximum 9007199254740991
        */
@@ -5416,6 +5977,12 @@ export namespace BulkOperationRetrieveJobResponse {
        * @maximum 9007199254740991
        */
       failed: number;
+      /**
+       * Bulk edits only: lines left unchanged because they were sold, removed or changed after the preview, could not take the change, or already had the new value. `succeeded + failed + skipped` equals `total` once the job completes. Absent on imports and exports.
+       * @minimum -9007199254740991
+       * @maximum 9007199254740991
+       */
+      skipped?: number;
     }
   }
 }

@@ -17,7 +17,11 @@ export class Purchases extends APIResource {
    *
    * Each item carries the order, its items and totals, and the **seller** you bought from: their handle, country, review score, and recent order-handling stats.
    *
-   * Filter with `status` (repeatable) and the `placedFrom` / `placedTo` date range. Walk the full set by following `pagination.nextCursor`: pass it back as `cursor` until it comes back `null`. `limit` defaults to 50, maximum 100.
+   * Filter with `status` (repeatable) and the `placedFrom` / `placedTo` date range. `needsAction=true` returns the purchases waiting on you, `dispute` the purchases with a dispute, `seller` the purchases from a seller by username, `orderNumberPrefix` the purchases whose number starts with the text, and `shipByBefore` the purchases whose seller has until before that instant to ship.
+   *
+   * Walk the full set by following `pagination.nextCursor`: pass it back as `cursor`, with the same filters, until it comes back `null`. `limit` defaults to 50, maximum 100. Send `includeTotal=true` on the first page to get the exact `pagination.total`.
+   *
+   * Each purchase carries `webUrl` (its page on cardnexus.com), `shipBy` and `actions`, the operations you can run on it now.
    *
    * Requires the `purchases:read` scope.
    *
@@ -29,6 +33,7 @@ export class Purchases extends APIResource {
    * ```ts
    * const purchase = await client.purchases.list({
    *   limit: 50,
+   *   includeTotal: false,
    * });
    * ```
    */
@@ -104,6 +109,15 @@ export interface Purchase {
    */
   shippingService: 'tracked' | 'untracked';
   /**
+   * The order page on cardnexus.com. The link carries no credentials: a signed-in person lands on the order.
+   */
+  webUrl: string;
+  /**
+   * The ship-by deadline. Set while the order is `pending_shipment` or `cancellation_requested`; `null` otherwise.
+   * @format date-time
+   */
+  shipBy: OffersAPI.DateString | null;
+  /**
    * When this untracked order closes on its own: it completes and the seller is paid, unless a dispute is opened before then. `null` on tracked orders, and until an untracked order ships.
    * @format date-time
    */
@@ -144,6 +158,27 @@ export interface Purchase {
    * The other party on an order — the buyer on a sale, the seller on a purchase — with their public profile and reputation.
    */
   seller: SalesAPI.OrderParty;
+  /**
+   * The operations that can act on this purchase now, filtered by the permissions of your key.
+   */
+  actions: Array<Purchase.Action>;
+}
+
+export namespace Purchase {
+  export interface Action {
+    /**
+     * The action. Each id names one operation on this resource.
+     */
+    id: 'mark-complete' | 'request-cancellation' | 'extend-shipping-deadline';
+    /**
+     * The HTTP method of the operation.
+     */
+    method: 'GET' | 'POST';
+    /**
+     * The API path of the operation, including the `/v1` prefix.
+     */
+    path: string;
+  }
 }
 
 /**
@@ -188,6 +223,15 @@ export interface PurchaseDetail {
    */
   shippingService: 'tracked' | 'untracked';
   /**
+   * The order page on cardnexus.com. The link carries no credentials: a signed-in person lands on the order.
+   */
+  webUrl: string;
+  /**
+   * The ship-by deadline. Set while the order is `pending_shipment` or `cancellation_requested`; `null` otherwise.
+   * @format date-time
+   */
+  shipBy: OffersAPI.DateString | null;
+  /**
    * When this untracked order closes on its own: it completes and the seller is paid, unless a dispute is opened before then. `null` on tracked orders, and until an untracked order ships.
    * @format date-time
    */
@@ -229,6 +273,10 @@ export interface PurchaseDetail {
    */
   seller: SalesAPI.OrderParty;
   /**
+   * The operations that can act on this purchase now, filtered by the permissions of your key.
+   */
+  actions: Array<PurchaseDetail.Action>;
+  /**
    * A postal address an order ships to.
    */
   shippingAddress: SalesAPI.OrderShippingAddress;
@@ -244,6 +292,23 @@ export interface PurchaseDetail {
    * Cancellation details when the order was cancelled. `null` otherwise.
    */
   cancellation: SalesAPI.OrderCancellation | null;
+}
+
+export namespace PurchaseDetail {
+  export interface Action {
+    /**
+     * The action. Each id names one operation on this resource.
+     */
+    id: 'mark-complete' | 'request-cancellation' | 'extend-shipping-deadline';
+    /**
+     * The HTTP method of the operation.
+     */
+    method: 'GET' | 'POST';
+    /**
+     * The API path of the operation, including the `/v1` prefix.
+     */
+    path: string;
+  }
 }
 
 /**
@@ -333,6 +398,32 @@ export interface PurchaseListParams {
    * @format date-time
    */
   placedTo?: OffersAPI.DateString;
+  /**
+   * Adds `pagination.total`, the exact number of orders matching the filters, to a request that sends no `cursor`. Counting costs one extra query; leave it off when you only page through.
+   * @default false
+   */
+  includeTotal?: boolean;
+  /**
+   * `true` returns only orders that need your action: for sales `pending_shipment`, `cancellation_requested` and `dispute_open`; for purchases `shipped`, `delivered` and `dispute_open`.
+   */
+  needsAction?: boolean;
+  /**
+   * Only orders with a dispute: `open` is `dispute_open`, `escalated` is `dispute_escalated`, `resolved` is the five `resolved_*` statuses, `any` is all seven. Combines with `status`.
+   */
+  dispute?: 'any' | 'open' | 'escalated' | 'resolved';
+  /**
+   * Only orders still awaiting dispatch (`pending_shipment`) whose `shipBy` deadline is before this instant.
+   * @format date-time
+   */
+  shipByBefore?: OffersAPI.DateString;
+  /**
+   * Only orders whose number starts with this text, at least 2 characters. Case-insensitive.
+   */
+  orderNumberPrefix?: string;
+  /**
+   * Only purchases from sellers whose username contains this text, at least 2 characters. Case-insensitive, among your own purchases.
+   */
+  seller?: string;
 }
 
 export interface PurchaseListResponse {
@@ -342,7 +433,16 @@ export interface PurchaseListResponse {
 
 export namespace PurchaseListResponse {
   export interface Pagination {
+    /**
+     * Pass as `cursor` for the next page. `null` on the last page.
+     */
     nextCursor: string | null;
+    /**
+     * The exact number of orders matching the filters. Present only when `includeTotal` was `true` and no `cursor` was sent.
+     * @minimum -9007199254740991
+     * @maximum 9007199254740991
+     */
+    total?: number;
   }
 }
 export declare namespace Purchases {

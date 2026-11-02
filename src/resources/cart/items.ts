@@ -129,7 +129,7 @@ export namespace ItemCreateParams {
 
 export interface ItemCreateResponse {
   /**
-   * Your shopping cart, grouped by seller. Adding items does not put them on hold — availability is checked at checkout.
+   * Your shopping cart, grouped by seller. Its listings can sell to someone else until you pay, so availability is checked at checkout.
    */
   cart: RunsAPI.Cart;
   /**

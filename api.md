@@ -147,7 +147,7 @@ const offer = await client.offers.list({
 
 Creates one offer for 1–1,000 distinct listings from one seller. Each item supplies only its listing ID and quantity. Supply either total in the listing currency or discountPercentage for the complete item subtotal. Per-item prices are not accepted.
 
-The whole request is validated before creation. Your cart is unchanged, and stock is reserved only on acceptance. An existing live offer with this seller returns 409 with its offerId; cancel an open offer explicitly before replacing it.
+The whole request is validated before creation. Your cart is unchanged, and nothing is taken from the seller's stock until the offer is accepted. An existing live offer with this seller returns 409 with its offerId; cancel an open offer explicitly before replacing it.
 
 The original subtotal must be at least 20 in the listing currency. Discounts may not exceed 40%; totals below 60% of the original subtotal or above the original subtotal return 422. The server allocates prices with the same rounding rules as the website; currentProposal.total is the resulting subtotal. You may make five creation requests per hour across your API credentials. Retries count toward this limit.
 
@@ -209,11 +209,11 @@ const offer = await client.offers.counter('665f3a2b1c8d4e9f7a6b5c59', {
 
 ### Accept the current proposal
 
-Accepts the current price proposal and reserves its stock. You can accept only a proposal sent by the other participant.
+Accepts the current price proposal. You can accept only a proposal sent by the other participant.
 
 Set `proposalId` to `currentProposal.id` from GET /v1/offers/{offerId}. If the other participant has sent a new price since you fetched the offer, the request returns `409 Conflict` without accepting it. Fetch the offer again and review the new price before accepting.
 
-If stock cannot be reserved, acceptance fails and the offer remains open. Acceptance starts a 48-hour redemption window. It leaves your cart unchanged and does not create a paid order. The buyer adds the accepted offer to the cart separately.
+If a listing no longer has the agreed quantity, acceptance fails and the offer remains open. Acceptance starts a 48-hour redemption window. It leaves your cart unchanged and does not create a paid order. The buyer adds the accepted offer to the cart separately.
 
 Returns the updated summary. Supports an optional Idempotency-Key. Requires offers:write.
 
@@ -274,7 +274,7 @@ Restores an accepted offer's items into the buyer's cart at their agreed quantit
 
 The offer must be accepted, unexpired, and unspent. Repeating the operation does not add the quantities again. Other cart items are preserved.
 
-After restoration, removing negotiated items or reducing their quantities below the agreement voids the offer. Failed restoration voids this offer and releases its reservation.
+After restoration, removing negotiated items or reducing their quantities below the agreement voids the offer. Failed restoration voids this offer.
 
 Returns the offer summary; GET /v1/cart returns cart contents. Supports an optional Idempotency-Key. Requires offers:write and cart:write.
 
@@ -342,6 +342,8 @@ const vacation = await client.account.vacation.list();
 Turns vacation mode on or off. Turning it on hides your listings from the Marketplace and stops new orders; you can still create, change and remove listings and work on your inventory, and turning it off shows them again.
 
 The change takes effect immediately and returns the resulting state.
+
+Turning vacation on also voids your open offers and the accepted offers the buyer has not paid yet, and removes your cards from buyers' carts. Turning it off does not bring any of them back. Orders already placed are not changed: you still have to ship them. Re-indexing your listings, cleaning the carts and voiding the offers run a short time after the call returns, so the returned state is the setting, not the finished cleanup.
 
 Requires the `account:write` scope.
 
@@ -451,12 +453,13 @@ Pagination + sort:
 
 - `limit` defaults to 50, max 200. `offset` defaults to 0.
 - `sortBy`, `sortDirection` — sort the results.
+- `pagination.nextCursor` — pass it back as `cursor`, with the same filters and sort, to read the next page; it is `null` on the last page. A cursor cannot be combined with a non-zero `offset`, A different search returns `CURSOR_MISMATCH`, and a cursor that cannot be read or is older than a day `INVALID_CURSOR`. A page read with a cursor returns `pagination.total` as `null` unless `includeTotal` is `true`. Without `name` and `listings`, pages follow the sort by key, so a walk neither repeats nor skips a product while the catalogue changes. With `listings`, results are ranked by relevance, and relevance can change between requests when the listings change: a cursor walk can show a product twice or miss one, so start again from the first page to catch up.
 
 Each result has `productType` set to either `card` or `sealed`. Card products carry per-finish prices and per-game attributes; sealed products carry a single price plus EAN/SKU.
 
 This endpoint has its own rate-limit bucket (`catalogue-search`); paginating through tens of thousands of results will hit it before your account-level limit. The daily feeds are the right tool for bulk catalogue replication.
 
-Authentication is required (any valid API key); no scope.
+Authentication is required (any valid API key); no scope. The `cardmarket` and `tcgplayer` price blocks need the `market-values` data permission and are left out without it.
 
 | Direction | Type |
 | --- | --- |
@@ -476,7 +479,7 @@ Returns a single product by its identifier, including cross-platform IDs that ma
 
 The response is a discriminated union by `productType` (`card` or `sealed`).
 
-Authentication is required (any valid API key); no scope.
+Authentication is required (any valid API key); no scope. The `cardmarket` and `tcgplayer` price blocks need the `market-values` data permission and are left out without it.
 
 | Direction | Type |
 | --- | --- |
@@ -490,11 +493,13 @@ const product = await client.products.retrieve('productId');
 
 Returns the Marketplace listings for a catalogue product — every listing's price, quantity for sale, the card's condition and language, the seller's photos of the card, and the seller behind it.
 
-Listings are sorted by price, cheapest first; when sellers list in different currencies, prices are compared in a common currency for the sort. Each listing's `price` stays in the currency the seller lists in.
+Listings are sorted by price, cheapest first, unless you pass `sortBy`: `price`, `priceVsMarket` (how far the price is below or above the listing's market price, which needs `deliveryCountry` or `region`) or `newest`. `sortDirection` defaults to `asc`, and to `desc` for `newest`. When sellers list in different currencies, prices are compared in a common currency for the sort, using the daily exchange rate without any margin. Each listing's `price` stays in the currency the seller lists in.
 
-Filter with any combination of `condition`, `language`, `finish`, and `region`. `condition`, `language`, and `finish` can each be repeated to match any of several values, e.g. `?condition=NM&condition=LP`. Pass `deliveryCountry` to keep only listings from sellers who ship to you — each listing then carries the seller's shipping charge under `seller.shipping`. Without `deliveryCountry`, every listing is returned and `seller.shipping` is `null`.
+Each listing carries its `marketPrice` and `priceVsMarketPercent` (both `null` without the `market-values` data permission, which `sortBy: priceVsMarket` also needs: otherwise the request is refused with 403 `DATA_PERMISSION_REQUIRED`), the time the seller put it up under `listedAt`, and the seller's `verifiedSalesCount`.
 
-Results are paginated: follow `pagination.nextCursor` by passing it back as `cursor` until it comes back `null`. `limit` defaults to 50, maximum 100.
+Filter with any combination of `condition`, `language`, `finish`, `graded` and `region`. `condition`, `language`, and `finish` can each be repeated to match any of several values, e.g. `?condition=NM&condition=LP`. Pass `deliveryCountry` to keep only listings from sellers who ship to you — each listing then carries the seller's shipping charge under `seller.shipping`. Without `deliveryCountry`, every listing is returned and `seller.shipping` is `null`.
+
+Results are paginated: follow `pagination.nextCursor` by passing it back as `cursor` until it comes back `null`. A cursor belongs to the filters and sort of the request that returned it, and a different search returns `CURSOR_MISMATCH`. A page can hold fewer than `limit` listings when some sold or were taken down since the search was indexed; the next cursor still continues without skipping or repeating a listing. `limit` defaults to 50, maximum 100.
 
 To buy from a listing, pass its `listingId` to `POST /v1/cart/items`.
 
@@ -603,13 +608,13 @@ const feed = await client.feeds.listExpansions('gameId');
 
 Returns a download link and metadata for a game's prices feed.
 
-The file is gzip-compressed, newline-delimited JSON. Each line is one product: its current Cardmarket, TCGplayer, and CardNexus marketplace prices, broken down by finish — the same price blocks as `GET /v1/products/{productId}/prices`. Products link back to the catalog feed by `productId`. The download is the literal gzip bytes — your HTTP client will not decompress it automatically. Gunzip the file before reading it; see https://docs.cardnexus.com/feeds for download examples in Node and Python.
+The file is gzip-compressed, newline-delimited JSON. Each line is one product: its current CardNexus marketplace prices and, with the `bulk-market-values` data permission, its Cardmarket and TCGplayer market values, broken down by finish — the same price blocks as `GET /v1/products/{productId}/prices`. Callers without the permission get a link to the CardNexus-only file: the same records without the `cardmarket` and `tcgplayer` blocks, and no record for a product with no live CardNexus listing. The request succeeds either way. Products link back to the catalog feed by `productId`. The download is the literal gzip bytes — your HTTP client will not decompress it automatically. Gunzip the file before reading it; see https://docs.cardnexus.com/feeds for download examples in Node and Python.
 
 The prices feed is rebuilt when a game's prices are refreshed. The `url` is a time-limited download link; request this endpoint again for a fresh link once it expires.
 
 The file's record shape (one product per line) is documented at https://docs.cardnexus.com/feeds/prices.
 
-Authentication is required (any valid API key); no scope.
+Authentication is required (any valid API key); no scope. The `bulk-market-values` data permission decides which file the link points to.
 
 | Direction | Type |
 | --- | --- |
@@ -651,17 +656,17 @@ Read market prices for catalogue products: current prices, price history, and re
 
 Returns the product's current prices from three sources, keyed by finish:
 
-- `cardmarket` — Cardmarket's daily price snapshot, in EUR: `low`/`mid`/`high`/`marketValue` tiers plus 24h/7d/30d trend percentages.
-- `tcgplayer` — TCGplayer's daily price snapshot, in USD, with the same fields.
+- `cardmarket` — Cardmarket's market value, in EUR: `marketValue` plus 24h/7d/30d change percentages. Needs the `market-values` data permission.
+- `tcgplayer` — TCGplayer's market value, in USD, with the same fields. Needs the `market-values` data permission.
 - `cardnexus` — the listings live on the CardNexus marketplace right now. `low` is the cheapest listing anywhere on the marketplace, converted to EUR at the current exchange rate; `listingCount` and `availableQuantity` count every region's listings. `regions` breaks the same numbers down per market region — `eu` in EUR and `na` in USD, each with its own cheapest listing, counts, and per-condition / per-language breakdowns. A region's prices are in that region's currency and never mixed with the other region's. A region with no live listings has no key. Graded listings count toward the totals but have no condition bucket.
 
-A source block is absent when it has no data — a finish with no live listings has no `cardnexus` block, and a product with no prices at all returns an empty `pricesByFinish` object.
+A source block is absent when it has no data — a finish with no live listings has no `cardnexus` block, and a product with no prices at all returns an empty `pricesByFinish` object. Without the `market-values` permission the `cardmarket` and `tcgplayer` blocks are absent, and a finish with no live CardNexus listing has no entry.
 
 For day-by-day price history, see `GET /v1/products/{productId}/prices/history`. To download prices for a whole game in one file, see `GET /v1/feeds/{gameId}/prices`.
 
 Requests count against the `pricing-snapshot` rate limit: 600 requests per hour.
 
-Authentication is required (any valid API key); no scope.
+Authentication is required (any valid API key); no scope. The `market-values` data permission is checked in addition.
 
 | Direction | Type |
 | --- | --- |
@@ -673,9 +678,9 @@ const pricing = await client.pricing.listProductPrices('productId');
 
 ### Get a product's price history
 
-Returns the product's daily price snapshots from Cardmarket (EUR) and TCGplayer (USD), one entry per day, marketplace, and finish, ordered by date ascending.
+Returns the product's daily market values from Cardmarket (EUR) and TCGplayer (USD), one entry per day, marketplace, and finish, ordered by date ascending.
 
-Each entry carries the day's `low`/`mid`/`high`/`marketValue` tiers. Days without a snapshot are absent from the result.
+Each entry carries the day's `marketValue`, and the deprecated `low`, `mid` and `high`, which are removed after 30 November 2026. Days without a snapshot are absent from the result. History starts on 6 November 2024.
 
 Narrow the result with `marketplace` and `finish`. `from` and `to` bound the range (both inclusive): `to` defaults to today, `from` to 30 days before `to`, and a single request can span at most 365 days.
 
@@ -683,7 +688,7 @@ For the current price including live CardNexus listings, see `GET /v1/products/{
 
 Requests count against the `pricing-history` rate limit: 120 requests per hour.
 
-Authentication is required (any valid API key); no scope.
+Authentication is required (any valid API key), and the caller's account (personal key) or application (application credentials, on-behalf calls, grant tokens) must hold the `price-history` data permission; otherwise the request is refused with 403 `DATA_PERMISSION_REQUIRED`. No scope.
 
 | Direction | Type |
 | --- | --- |
@@ -804,7 +809,7 @@ An empty cart returns `deliveryCountry: null` and no seller groups.
 
 Each item's `unitPrice` is the price when you added it. If the seller lowers their price, your cart price follows; if they raise it, the item is removed from your cart. When a listing no longer has enough units, your cart quantity is reduced to what is available.
 
-Adding items to your cart does not put them on hold — availability is checked at checkout.
+Listings in your cart can sell to someone else until you pay, so availability is checked at checkout.
 
 Requires the `cart:read` scope.
 
@@ -966,7 +971,7 @@ const line = await client.lines.create({
 
 ### Search your inventory
 
-Searches your inventory lines. Returns a paginated list of lines matching the body, with `total` for the filtered set.
+Searches your inventory lines. Returns a page of lines matching the body, with `total` for the filtered set.
 
 Filter fields (all combined with AND):
 
@@ -975,17 +980,24 @@ Filter fields (all combined with AND):
 - `nameSlug` — exact slug match, ignoring case: every line you hold of that card, across printings and expansions.
 - `tags`, `location` — match by label name. `{ "op": "or", "values": ["to-verify", "reserved"] }` returns lines carrying either tag; `"op": "and"` requires both. Pass `null` as a value to match lines with no tag (or no location) — `{ "op": "or", "values": [null] }` returns untagged lines.
 - `customId`, `customIdPrefix`, `customIdContains` — match your own line identifiers, case-insensitively. `commentContains` matches your buyer-facing comments word by word.
+- `inventoryIds`, `customIds` — read specific lines by their identifier or by your own `customId` (1–200 each).
 - `productIds`, `expansionId`, `nameSlug` — direct catalogue lookups. `productIds` and `expansionId` take up to 200 ids per call — split larger sets across several calls.
 - `condition`, `language`, `finish`, `graded`, `forSale`, `quantity`, `listingPrice` — line attributes.
 - `productType`, `productCategory` — restrict to cards or sealed.
 - `gameFilters` — pick a game (e.g. `{ "game": "mtg" }`), and optionally that game's own attribute filters in the same object.
+- `updatedSince` — lines modified at or after a date and time.
+- `marketPrice`, `hasMarketPrice`, `priceVsMarket`, `marketChange`, `priceCheckGroup` — filters on the market price of a line, on how far its listing price is from it, on how the market price moved, and on its price check group. They need a seller profile. `priceVsMarket`, `priceCheckGroup` and the `marketChangeAmount` sort are computed per line, so their cost grows with the number of your matching lines on every page.
 
 Pagination + sort:
 
-- `limit` defaults to 50, max 200. `offset` defaults to 0 and pages up to the first 10,000 matches — for a complete walk of your inventory use `GET /v1/inventory` or `POST /v1/inventory/bulk/export`.
-- `sortBy`, `sortDirection` — sort the results. When `name` is set, results are ranked by relevance unless you sort explicitly.
+- `limit` defaults to 50, max 200. `offset` defaults to 0 and pages up to the first 10,000 matches.
+- `pagination.nextCursor` — send it back as `cursor`, with the same filters and sort, to get the next page in a stable order with no depth limit. A cursor sent with other filters or another sort returns `CURSOR_MISMATCH`. `total` is returned on every request without a `cursor`, and on one with a `cursor` only when `includeTotal` is `true`.
+- `includeMarket` — adds each line's market price, its movement over a day, a week and a month, and how far the listing price is from the market price. It needs a seller profile.
+- `sortBy`, `sortDirection` — sort the results. When `name` is set, results are ranked by relevance unless you sort explicitly. `marketPrice`, `marketChangeAmount` (over `changePeriod`, per card or per line with `weightByQuantity`) and `priceVsMarket` sort by market data and need a seller profile.
 
-This endpoint is for **finding** lines: relevance ranking, label and text matching, jump-to-page pagination. Results can lag your latest changes by a few seconds. To walk your whole inventory — always up to date, in a stable order, with no depth limit — use `GET /v1/inventory`; both return the same line shape.
+A search that cannot be completed in time returns `SEARCH_UNAVAILABLE` and never a partial page.
+
+This endpoint is for **finding** lines: relevance ranking, label and text matching. Results can lag your latest changes by a few seconds. To walk your whole inventory — always up to date, with no lag — use `GET /v1/inventory`; both return the same line shape.
 
 `POST /v1/inventory/bulk/export` accepts the same `filters`, so a search can be turned into an export unchanged.
 
@@ -1002,6 +1014,10 @@ Requires the `inventory:read` scope.
 const line = await client.lines.search({
   offset: 0,
   limit: 50,
+  includeTotal: false,
+  includeMarket: false,
+  changePeriod: 'week',
+  weightByQuantity: false,
 });
 ```
 
@@ -1565,16 +1581,21 @@ const list = await client.lists.create({
 
 Returns a single list of yours in full — its metadata and every card in it.
 
+A list can hold 2000 cards. Pass `includeItems=false` to get the metadata alone, and read the cards page by page with `GET /v1/lists/{listId}/items`.
+
 To enumerate your lists without their cards, see `GET /v1/lists`.
 
 Requires the `lists:read` scope.
 
 | Direction | Type |
 | --- | --- |
+| Request | [`ListRetrieveParams`](./src/resources/lists.ts) |
 | Response | [`ListRetrieveResponse`](./src/resources/lists.ts) |
 
 ```ts
-const list = await client.lists.retrieve('listId');
+const list = await client.lists.retrieve('listId', {
+  includeItems: true,
+});
 ```
 
 ### Update a list
@@ -1672,7 +1693,11 @@ Returns your sales — orders where you are the seller — as a cursor-paginated
 
 Each item carries the order, its items and totals, the **buyer** you sold to — their handle, country, review score, and recent order-handling stats — and the address to ship to, so a batch of parcels can be prepared from one call.
 
-Filter with `status` (repeatable), the `placedFrom` / `placedTo` date range, and your own `metadata` — `?metadata[fulfillment_stage]=packed` returns the sales carrying exactly that pair, and repeating the parameter with another key requires all of them. Walk the full set by following `pagination.nextCursor`: pass it back as `cursor` until it comes back `null`. `limit` defaults to 50, maximum 100.
+Filter with `status` (repeatable), the `placedFrom` / `placedTo` date range, and your own `metadata` — `?metadata[fulfillment_stage]=packed` returns the sales carrying exactly that pair, and repeating the parameter with another key requires all of them. `needsAction=true` returns the sales waiting on you, `dispute` the sales with a dispute, `buyer` the sales to a buyer by username, and `orderNumberPrefix` the sales whose number starts with the text. `shipByBefore` and `shipByAfter` bound the ship-by deadline of sales awaiting dispatch, and `sort=shipBy` lists those sales earliest deadline first.
+
+Walk the full set by following `pagination.nextCursor`: pass it back as `cursor`, with the same filters and sort, until it comes back `null`. `limit` defaults to 50, maximum 100. Send `includeTotal=true` on the first page to get the exact `pagination.total`.
+
+Each sale carries `webUrl` (its page on cardnexus.com), `shipBy` and `actions`, the operations you can run on it now.
 
 Requires the `sales:read` scope.
 
@@ -1684,6 +1709,7 @@ Requires the `sales:read` scope.
 ```ts
 const sale = await client.sales.list({
   limit: 50,
+  includeTotal: false,
 });
 ```
 
@@ -1711,13 +1737,15 @@ Marks one of your sales shipped and registers its tracking number. The order mov
 
 The order must be awaiting dispatch (`pending_shipment`) or have an open cancellation request (`cancellation_requested`) — you can still ship within the cancellation-request window. Any other status returns `409 INVALID_STATUS`.
 
-The response carries a tracking link under `shipping`. The carrier is detected automatically from the tracking number and appears on the sale once detection completes. A tracking number that is rejected as invalid returns `422 TRACKING_REGISTRATION_FAILED`. Pass `trackingUrl` to show the buyer your own tracking page instead.
+The response carries a tracking link under `shipping`. The carrier is detected automatically from the tracking number and appears on the sale once detection completes. A tracking number that is rejected as invalid returns `422 TRACKING_REGISTRATION_FAILED`. If the tracking provider is busy, the call returns `429 TRACKING_RATE_LIMITED` with `retryAfter` and changes nothing. Pass `trackingUrl` to show the buyer your own tracking page instead.
 
 A USPS Intelligent Mail barcode (IMb) number ships the sale as a letter: `shipping.type` is `letter` and the carrier is `usps`. CardNexus cannot follow IMb scans itself; the application that printed the label sends them with `POST /v1/tracking/events`.
 
 When the sale's `shippingService` is `untracked`, the buyer paid for an untracked letter: you can leave `trackingNumber` out and the sale ships without one, with `shipping.trackingNumber` and `shipping.type` set to `null`. The sale then closes on its own at `untrackedCloseAt`. Leaving `trackingNumber` out on a `tracked` sale returns `409 TRACKING_NUMBER_REQUIRED`.
 
 Pass `metadata` to stamp your own key/value pairs in the same call, merged the same way `PATCH /v1/sales/{orderNumber}/metadata` merges them. The two either both apply or neither does: a tracking number rejected as invalid leaves the sale's metadata unchanged, and metadata that would take the sale past its key limit returns `422 METADATA_LIMIT_EXCEEDED` without shipping the order.
+
+A sale worth more than €1,000 shipped from the EU to a destination outside the EU customs area ships without a CardNexus label, even on CardNexus-managed shipping, and must travel tracked with signature on delivery. Pass `signatureConfirmed: true` to confirm it; without it the call returns `409 SIGNATURE_REQUIRED`.
 
 CardNexus Shield shipping insurance cannot be opted into through the API — sales shipped here are uninsured. Use the web or mobile app to insure a shipment.
 
@@ -1743,6 +1771,8 @@ const saleDetail = await client.sales.markShipped('orderNumber');
 Cancels one of your sales. The order moves to `cancelled_seller`, the buyer is refunded in full, and the cards return to your inventory.
 
 The order must be awaiting dispatch (`pending_shipment`). Any other status returns `409 INVALID_STATUS`.
+
+When the buyer has asked to cancel (`cancellation_requested`), use `POST /v1/sales/{orderNumber}/accept-cancellation` instead: it has no review or completion-rate penalty.
 
 `reasonText` is shown to the buyer along with the reason code, and both appear on the sale's `cancellation` afterwards.
 
@@ -1834,7 +1864,11 @@ Returns your purchases — orders where you are the buyer — as a cursor-pagina
 
 Each item carries the order, its items and totals, and the **seller** you bought from: their handle, country, review score, and recent order-handling stats.
 
-Filter with `status` (repeatable) and the `placedFrom` / `placedTo` date range. Walk the full set by following `pagination.nextCursor`: pass it back as `cursor` until it comes back `null`. `limit` defaults to 50, maximum 100.
+Filter with `status` (repeatable) and the `placedFrom` / `placedTo` date range. `needsAction=true` returns the purchases waiting on you, `dispute` the purchases with a dispute, `seller` the purchases from a seller by username, `orderNumberPrefix` the purchases whose number starts with the text, and `shipByBefore` the purchases whose seller has until before that instant to ship.
+
+Walk the full set by following `pagination.nextCursor`: pass it back as `cursor`, with the same filters, until it comes back `null`. `limit` defaults to 50, maximum 100. Send `includeTotal=true` on the first page to get the exact `pagination.total`.
+
+Each purchase carries `webUrl` (its page on cardnexus.com), `shipBy` and `actions`, the operations you can run on it now.
 
 Requires the `purchases:read` scope.
 
@@ -1846,6 +1880,7 @@ Requires the `purchases:read` scope.
 ```ts
 const purchase = await client.purchases.list({
   limit: 50,
+  includeTotal: false,
 });
 ```
 

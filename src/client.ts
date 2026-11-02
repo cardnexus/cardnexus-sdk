@@ -171,6 +171,7 @@ import {
   type ListDeleteResponse,
   type ListListParams,
   type ListCreateParams,
+  type ListRetrieveParams,
   type ListUpdateParams,
   type ListDeleteParams,
 } from './resources/lists';
@@ -1244,6 +1245,7 @@ export declare namespace CardNexusPublicAPI {
     type ListDeleteResponse as ListDeleteResponse,
     type ListListParams as ListListParams,
     type ListCreateParams as ListCreateParams,
+    type ListRetrieveParams as ListRetrieveParams,
     type ListUpdateParams as ListUpdateParams,
     type ListDeleteParams as ListDeleteParams,
   };

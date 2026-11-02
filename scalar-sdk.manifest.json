@@ -1,7 +1,7 @@
 {
   "name": "CardNexusPublicApi",
   "slug": "cardNexusPublicApi",
-  "generatorVersion": "0.36.3",
+  "generatorVersion": "0.36.11",
   "servers": [
     "https://public-api.cardnexus.com/v1"
   ],
@@ -330,6 +330,7 @@
             "en"
           ],
           "imageUrl": "https://images.cardnexus.com/products/mtg/lea/black-lotus-front.jpg",
+          "imageCensored": false,
           "externalIds": {
             "cardmarket": [
               {
@@ -356,9 +357,6 @@
             "Standard": {
               "cardmarket": {
                 "currency": "EUR",
-                "low": 14999,
-                "mid": 17500,
-                "high": 32500,
                 "marketValue": 18250,
                 "change24h": 0.4,
                 "change7d": -1.2,
@@ -366,9 +364,6 @@
               },
               "tcgplayer": {
                 "currency": "USD",
-                "low": 16450,
-                "mid": 19250,
-                "high": 35200,
                 "marketValue": 20100,
                 "change24h": 0.3,
                 "change7d": -0.9,
@@ -544,6 +539,16 @@
               "kind": "primitive",
               "type": "string",
               "format": "uri"
+            }
+          },
+          {
+            "name": "imageCensored",
+            "publicName": "imageCensored",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "boolean"
             }
           },
           {
@@ -1283,15 +1288,13 @@
             "en"
           ],
           "imageUrl": "https://images.cardnexus.com/products/pokemon/sv4/stellar-crown-booster-box.jpg",
+          "imageCensored": false,
           "productType": "sealed",
           "productCategory": "booster_box",
           "releaseDate": "2024-09-13T00:00:00.000Z",
           "prices": {
             "cardmarket": {
               "currency": "EUR",
-              "low": 124.5,
-              "mid": 132,
-              "high": 145,
               "marketValue": 132.5,
               "change24h": 0.2,
               "change7d": 1.4,
@@ -1299,9 +1302,6 @@
             },
             "tcgplayer": {
               "currency": "USD",
-              "low": 134.99,
-              "mid": 142,
-              "high": 159,
               "marketValue": 143,
               "change24h": 0.1,
               "change7d": 1.6,
@@ -1458,6 +1458,16 @@
               "kind": "primitive",
               "type": "string",
               "format": "uri"
+            }
+          },
+          {
+            "name": "imageCensored",
+            "publicName": "imageCensored",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "boolean"
             }
           },
           {
@@ -2012,9 +2022,6 @@
               "examples": {
                 "cardmarket": {
                   "currency": "EUR",
-                  "low": 38.9,
-                  "mid": 44.5,
-                  "high": 59.99,
                   "marketValue": 43.75,
                   "change24h": 0.4,
                   "change7d": -1.2,
@@ -2022,9 +2029,6 @@
                 },
                 "tcgplayer": {
                   "currency": "USD",
-                  "low": 42.5,
-                  "mid": 48,
-                  "high": 64.99,
                   "marketValue": 47.2,
                   "change24h": 0.2,
                   "change7d": -0.8,
@@ -2098,7 +2102,7 @@
                         "name": "low",
                         "publicName": "low",
                         "required": false,
-                        "deprecated": false,
+                        "deprecated": true,
                         "type": {
                           "kind": "primitive",
                           "type": "number"
@@ -2108,7 +2112,7 @@
                         "name": "mid",
                         "publicName": "mid",
                         "required": false,
-                        "deprecated": false,
+                        "deprecated": true,
                         "type": {
                           "kind": "primitive",
                           "type": "number"
@@ -2118,7 +2122,7 @@
                         "name": "high",
                         "publicName": "high",
                         "required": false,
-                        "deprecated": false,
+                        "deprecated": true,
                         "type": {
                           "kind": "primitive",
                           "type": "number"
@@ -2186,120 +2190,6 @@
                               "kind": "null"
                             }
                           ]
-                        }
-                      },
-                      {
-                        "name": "byCondition",
-                        "publicName": "byCondition",
-                        "required": false,
-                        "deprecated": false,
-                        "type": {
-                          "kind": "record",
-                          "value": {
-                            "kind": "object",
-                            "properties": [
-                              {
-                                "name": "low",
-                                "publicName": "low",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "primitive",
-                                  "type": "number"
-                                }
-                              },
-                              {
-                                "name": "listingCount",
-                                "publicName": "listingCount",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "primitive",
-                                  "type": "integer",
-                                  "validation": {
-                                    "minimum": -9007199254740991,
-                                    "maximum": 9007199254740991
-                                  }
-                                }
-                              },
-                              {
-                                "name": "availableQuantity",
-                                "publicName": "availableQuantity",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "primitive",
-                                  "type": "integer",
-                                  "validation": {
-                                    "minimum": -9007199254740991,
-                                    "maximum": 9007199254740991
-                                  }
-                                }
-                              },
-                              {
-                                "name": "byLanguage",
-                                "publicName": "byLanguage",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "record",
-                                  "value": {
-                                    "kind": "object",
-                                    "properties": [
-                                      {
-                                        "name": "low",
-                                        "publicName": "low",
-                                        "required": false,
-                                        "deprecated": false,
-                                        "type": {
-                                          "kind": "primitive",
-                                          "type": "number"
-                                        }
-                                      },
-                                      {
-                                        "name": "listingCount",
-                                        "publicName": "listingCount",
-                                        "required": false,
-                                        "deprecated": false,
-                                        "type": {
-                                          "kind": "primitive",
-                                          "type": "integer",
-                                          "validation": {
-                                            "minimum": -9007199254740991,
-                                            "maximum": 9007199254740991
-                                          }
-                                        }
-                                      },
-                                      {
-                                        "name": "availableQuantity",
-                                        "publicName": "availableQuantity",
-                                        "required": false,
-                                        "deprecated": false,
-                                        "type": {
-                                          "kind": "primitive",
-                                          "type": "integer",
-                                          "validation": {
-                                            "minimum": -9007199254740991,
-                                            "maximum": 9007199254740991
-                                          }
-                                        }
-                                      }
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  "propertyNames": {
-                                    "kind": "primitive",
-                                    "type": "string"
-                                  }
-                                }
-                              }
-                            ],
-                            "additionalProperties": false
-                          },
-                          "propertyNames": {
-                            "kind": "primitive",
-                            "type": "string"
-                          }
                         }
                       }
                     ],
@@ -2339,7 +2229,7 @@
                         "name": "low",
                         "publicName": "low",
                         "required": false,
-                        "deprecated": false,
+                        "deprecated": true,
                         "type": {
                           "kind": "primitive",
                           "type": "number"
@@ -2349,7 +2239,7 @@
                         "name": "mid",
                         "publicName": "mid",
                         "required": false,
-                        "deprecated": false,
+                        "deprecated": true,
                         "type": {
                           "kind": "primitive",
                           "type": "number"
@@ -2359,7 +2249,7 @@
                         "name": "high",
                         "publicName": "high",
                         "required": false,
-                        "deprecated": false,
+                        "deprecated": true,
                         "type": {
                           "kind": "primitive",
                           "type": "number"
@@ -2427,120 +2317,6 @@
                               "kind": "null"
                             }
                           ]
-                        }
-                      },
-                      {
-                        "name": "byCondition",
-                        "publicName": "byCondition",
-                        "required": false,
-                        "deprecated": false,
-                        "type": {
-                          "kind": "record",
-                          "value": {
-                            "kind": "object",
-                            "properties": [
-                              {
-                                "name": "low",
-                                "publicName": "low",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "primitive",
-                                  "type": "number"
-                                }
-                              },
-                              {
-                                "name": "listingCount",
-                                "publicName": "listingCount",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "primitive",
-                                  "type": "integer",
-                                  "validation": {
-                                    "minimum": -9007199254740991,
-                                    "maximum": 9007199254740991
-                                  }
-                                }
-                              },
-                              {
-                                "name": "availableQuantity",
-                                "publicName": "availableQuantity",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "primitive",
-                                  "type": "integer",
-                                  "validation": {
-                                    "minimum": -9007199254740991,
-                                    "maximum": 9007199254740991
-                                  }
-                                }
-                              },
-                              {
-                                "name": "byLanguage",
-                                "publicName": "byLanguage",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "record",
-                                  "value": {
-                                    "kind": "object",
-                                    "properties": [
-                                      {
-                                        "name": "low",
-                                        "publicName": "low",
-                                        "required": false,
-                                        "deprecated": false,
-                                        "type": {
-                                          "kind": "primitive",
-                                          "type": "number"
-                                        }
-                                      },
-                                      {
-                                        "name": "listingCount",
-                                        "publicName": "listingCount",
-                                        "required": false,
-                                        "deprecated": false,
-                                        "type": {
-                                          "kind": "primitive",
-                                          "type": "integer",
-                                          "validation": {
-                                            "minimum": -9007199254740991,
-                                            "maximum": 9007199254740991
-                                          }
-                                        }
-                                      },
-                                      {
-                                        "name": "availableQuantity",
-                                        "publicName": "availableQuantity",
-                                        "required": false,
-                                        "deprecated": false,
-                                        "type": {
-                                          "kind": "primitive",
-                                          "type": "integer",
-                                          "validation": {
-                                            "minimum": -9007199254740991,
-                                            "maximum": 9007199254740991
-                                          }
-                                        }
-                                      }
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  "propertyNames": {
-                                    "kind": "primitive",
-                                    "type": "string"
-                                  }
-                                }
-                              }
-                            ],
-                            "additionalProperties": false
-                          },
-                          "propertyNames": {
-                            "kind": "primitive",
-                            "type": "string"
-                          }
                         }
                       }
                     ],
@@ -2999,6 +2775,16 @@
               "kind": "primitive",
               "type": "string",
               "format": "uri"
+            }
+          },
+          {
+            "name": "imageCensored",
+            "publicName": "imageCensored",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "boolean"
             }
           },
           {
@@ -3848,6 +3634,16 @@
             }
           },
           {
+            "name": "imageCensored",
+            "publicName": "imageCensored",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "boolean"
+            }
+          },
+          {
             "name": "externalIds",
             "publicName": "externalIds",
             "required": true,
@@ -4399,9 +4195,6 @@
               "examples": {
                 "cardmarket": {
                   "currency": "EUR",
-                  "low": 38.9,
-                  "mid": 44.5,
-                  "high": 59.99,
                   "marketValue": 43.75,
                   "change24h": 0.4,
                   "change7d": -1.2,
@@ -4409,9 +4202,6 @@
                 },
                 "tcgplayer": {
                   "currency": "USD",
-                  "low": 42.5,
-                  "mid": 48,
-                  "high": 64.99,
                   "marketValue": 47.2,
                   "change24h": 0.2,
                   "change7d": -0.8,
@@ -4485,7 +4275,7 @@
                         "name": "low",
                         "publicName": "low",
                         "required": false,
-                        "deprecated": false,
+                        "deprecated": true,
                         "type": {
                           "kind": "primitive",
                           "type": "number"
@@ -4495,7 +4285,7 @@
                         "name": "mid",
                         "publicName": "mid",
                         "required": false,
-                        "deprecated": false,
+                        "deprecated": true,
                         "type": {
                           "kind": "primitive",
                           "type": "number"
@@ -4505,7 +4295,7 @@
                         "name": "high",
                         "publicName": "high",
                         "required": false,
-                        "deprecated": false,
+                        "deprecated": true,
                         "type": {
                           "kind": "primitive",
                           "type": "number"
@@ -4573,120 +4363,6 @@
                               "kind": "null"
                             }
                           ]
-                        }
-                      },
-                      {
-                        "name": "byCondition",
-                        "publicName": "byCondition",
-                        "required": false,
-                        "deprecated": false,
-                        "type": {
-                          "kind": "record",
-                          "value": {
-                            "kind": "object",
-                            "properties": [
-                              {
-                                "name": "low",
-                                "publicName": "low",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "primitive",
-                                  "type": "number"
-                                }
-                              },
-                              {
-                                "name": "listingCount",
-                                "publicName": "listingCount",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "primitive",
-                                  "type": "integer",
-                                  "validation": {
-                                    "minimum": -9007199254740991,
-                                    "maximum": 9007199254740991
-                                  }
-                                }
-                              },
-                              {
-                                "name": "availableQuantity",
-                                "publicName": "availableQuantity",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "primitive",
-                                  "type": "integer",
-                                  "validation": {
-                                    "minimum": -9007199254740991,
-                                    "maximum": 9007199254740991
-                                  }
-                                }
-                              },
-                              {
-                                "name": "byLanguage",
-                                "publicName": "byLanguage",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "record",
-                                  "value": {
-                                    "kind": "object",
-                                    "properties": [
-                                      {
-                                        "name": "low",
-                                        "publicName": "low",
-                                        "required": false,
-                                        "deprecated": false,
-                                        "type": {
-                                          "kind": "primitive",
-                                          "type": "number"
-                                        }
-                                      },
-                                      {
-                                        "name": "listingCount",
-                                        "publicName": "listingCount",
-                                        "required": false,
-                                        "deprecated": false,
-                                        "type": {
-                                          "kind": "primitive",
-                                          "type": "integer",
-                                          "validation": {
-                                            "minimum": -9007199254740991,
-                                            "maximum": 9007199254740991
-                                          }
-                                        }
-                                      },
-                                      {
-                                        "name": "availableQuantity",
-                                        "publicName": "availableQuantity",
-                                        "required": false,
-                                        "deprecated": false,
-                                        "type": {
-                                          "kind": "primitive",
-                                          "type": "integer",
-                                          "validation": {
-                                            "minimum": -9007199254740991,
-                                            "maximum": 9007199254740991
-                                          }
-                                        }
-                                      }
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  "propertyNames": {
-                                    "kind": "primitive",
-                                    "type": "string"
-                                  }
-                                }
-                              }
-                            ],
-                            "additionalProperties": false
-                          },
-                          "propertyNames": {
-                            "kind": "primitive",
-                            "type": "string"
-                          }
                         }
                       }
                     ],
@@ -4726,7 +4402,7 @@
                         "name": "low",
                         "publicName": "low",
                         "required": false,
-                        "deprecated": false,
+                        "deprecated": true,
                         "type": {
                           "kind": "primitive",
                           "type": "number"
@@ -4736,7 +4412,7 @@
                         "name": "mid",
                         "publicName": "mid",
                         "required": false,
-                        "deprecated": false,
+                        "deprecated": true,
                         "type": {
                           "kind": "primitive",
                           "type": "number"
@@ -4746,7 +4422,7 @@
                         "name": "high",
                         "publicName": "high",
                         "required": false,
-                        "deprecated": false,
+                        "deprecated": true,
                         "type": {
                           "kind": "primitive",
                           "type": "number"
@@ -4814,120 +4490,6 @@
                               "kind": "null"
                             }
                           ]
-                        }
-                      },
-                      {
-                        "name": "byCondition",
-                        "publicName": "byCondition",
-                        "required": false,
-                        "deprecated": false,
-                        "type": {
-                          "kind": "record",
-                          "value": {
-                            "kind": "object",
-                            "properties": [
-                              {
-                                "name": "low",
-                                "publicName": "low",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "primitive",
-                                  "type": "number"
-                                }
-                              },
-                              {
-                                "name": "listingCount",
-                                "publicName": "listingCount",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "primitive",
-                                  "type": "integer",
-                                  "validation": {
-                                    "minimum": -9007199254740991,
-                                    "maximum": 9007199254740991
-                                  }
-                                }
-                              },
-                              {
-                                "name": "availableQuantity",
-                                "publicName": "availableQuantity",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "primitive",
-                                  "type": "integer",
-                                  "validation": {
-                                    "minimum": -9007199254740991,
-                                    "maximum": 9007199254740991
-                                  }
-                                }
-                              },
-                              {
-                                "name": "byLanguage",
-                                "publicName": "byLanguage",
-                                "required": false,
-                                "deprecated": false,
-                                "type": {
-                                  "kind": "record",
-                                  "value": {
-                                    "kind": "object",
-                                    "properties": [
-                                      {
-                                        "name": "low",
-                                        "publicName": "low",
-                                        "required": false,
-                                        "deprecated": false,
-                                        "type": {
-                                          "kind": "primitive",
-                                          "type": "number"
-                                        }
-                                      },
-                                      {
-                                        "name": "listingCount",
-                                        "publicName": "listingCount",
-                                        "required": false,
-                                        "deprecated": false,
-                                        "type": {
-                                          "kind": "primitive",
-                                          "type": "integer",
-                                          "validation": {
-                                            "minimum": -9007199254740991,
-                                            "maximum": 9007199254740991
-                                          }
-                                        }
-                                      },
-                                      {
-                                        "name": "availableQuantity",
-                                        "publicName": "availableQuantity",
-                                        "required": false,
-                                        "deprecated": false,
-                                        "type": {
-                                          "kind": "primitive",
-                                          "type": "integer",
-                                          "validation": {
-                                            "minimum": -9007199254740991,
-                                            "maximum": 9007199254740991
-                                          }
-                                        }
-                                      }
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  "propertyNames": {
-                                    "kind": "primitive",
-                                    "type": "string"
-                                  }
-                                }
-                              }
-                            ],
-                            "additionalProperties": false
-                          },
-                          "propertyNames": {
-                            "kind": "primitive",
-                            "type": "string"
-                          }
                         }
                       }
                     ],
@@ -5742,9 +5304,6 @@
         "examples": {
           "cardmarket": {
             "currency": "EUR",
-            "low": 38.9,
-            "mid": 44.5,
-            "high": 59.99,
             "marketValue": 43.75,
             "change24h": 0.4,
             "change7d": -1.2,
@@ -5752,9 +5311,6 @@
           },
           "tcgplayer": {
             "currency": "USD",
-            "low": 42.5,
-            "mid": 48,
-            "high": 64.99,
             "marketValue": 47.2,
             "change24h": 0.2,
             "change7d": -0.8,
@@ -5828,7 +5384,7 @@
                   "name": "low",
                   "publicName": "low",
                   "required": false,
-                  "deprecated": false,
+                  "deprecated": true,
                   "type": {
                     "kind": "primitive",
                     "type": "number"
@@ -5838,7 +5394,7 @@
                   "name": "mid",
                   "publicName": "mid",
                   "required": false,
-                  "deprecated": false,
+                  "deprecated": true,
                   "type": {
                     "kind": "primitive",
                     "type": "number"
@@ -5848,7 +5404,7 @@
                   "name": "high",
                   "publicName": "high",
                   "required": false,
-                  "deprecated": false,
+                  "deprecated": true,
                   "type": {
                     "kind": "primitive",
                     "type": "number"
@@ -5916,120 +5472,6 @@
                         "kind": "null"
                       }
                     ]
-                  }
-                },
-                {
-                  "name": "byCondition",
-                  "publicName": "byCondition",
-                  "required": false,
-                  "deprecated": false,
-                  "type": {
-                    "kind": "record",
-                    "value": {
-                      "kind": "object",
-                      "properties": [
-                        {
-                          "name": "low",
-                          "publicName": "low",
-                          "required": false,
-                          "deprecated": false,
-                          "type": {
-                            "kind": "primitive",
-                            "type": "number"
-                          }
-                        },
-                        {
-                          "name": "listingCount",
-                          "publicName": "listingCount",
-                          "required": false,
-                          "deprecated": false,
-                          "type": {
-                            "kind": "primitive",
-                            "type": "integer",
-                            "validation": {
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            }
-                          }
-                        },
-                        {
-                          "name": "availableQuantity",
-                          "publicName": "availableQuantity",
-                          "required": false,
-                          "deprecated": false,
-                          "type": {
-                            "kind": "primitive",
-                            "type": "integer",
-                            "validation": {
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            }
-                          }
-                        },
-                        {
-                          "name": "byLanguage",
-                          "publicName": "byLanguage",
-                          "required": false,
-                          "deprecated": false,
-                          "type": {
-                            "kind": "record",
-                            "value": {
-                              "kind": "object",
-                              "properties": [
-                                {
-                                  "name": "low",
-                                  "publicName": "low",
-                                  "required": false,
-                                  "deprecated": false,
-                                  "type": {
-                                    "kind": "primitive",
-                                    "type": "number"
-                                  }
-                                },
-                                {
-                                  "name": "listingCount",
-                                  "publicName": "listingCount",
-                                  "required": false,
-                                  "deprecated": false,
-                                  "type": {
-                                    "kind": "primitive",
-                                    "type": "integer",
-                                    "validation": {
-                                      "minimum": -9007199254740991,
-                                      "maximum": 9007199254740991
-                                    }
-                                  }
-                                },
-                                {
-                                  "name": "availableQuantity",
-                                  "publicName": "availableQuantity",
-                                  "required": false,
-                                  "deprecated": false,
-                                  "type": {
-                                    "kind": "primitive",
-                                    "type": "integer",
-                                    "validation": {
-                                      "minimum": -9007199254740991,
-                                      "maximum": 9007199254740991
-                                    }
-                                  }
-                                }
-                              ],
-                              "additionalProperties": false
-                            },
-                            "propertyNames": {
-                              "kind": "primitive",
-                              "type": "string"
-                            }
-                          }
-                        }
-                      ],
-                      "additionalProperties": false
-                    },
-                    "propertyNames": {
-                      "kind": "primitive",
-                      "type": "string"
-                    }
                   }
                 }
               ],
@@ -6069,7 +5511,7 @@
                   "name": "low",
                   "publicName": "low",
                   "required": false,
-                  "deprecated": false,
+                  "deprecated": true,
                   "type": {
                     "kind": "primitive",
                     "type": "number"
@@ -6079,7 +5521,7 @@
                   "name": "mid",
                   "publicName": "mid",
                   "required": false,
-                  "deprecated": false,
+                  "deprecated": true,
                   "type": {
                     "kind": "primitive",
                     "type": "number"
@@ -6089,7 +5531,7 @@
                   "name": "high",
                   "publicName": "high",
                   "required": false,
-                  "deprecated": false,
+                  "deprecated": true,
                   "type": {
                     "kind": "primitive",
                     "type": "number"
@@ -6157,120 +5599,6 @@
                         "kind": "null"
                       }
                     ]
-                  }
-                },
-                {
-                  "name": "byCondition",
-                  "publicName": "byCondition",
-                  "required": false,
-                  "deprecated": false,
-                  "type": {
-                    "kind": "record",
-                    "value": {
-                      "kind": "object",
-                      "properties": [
-                        {
-                          "name": "low",
-                          "publicName": "low",
-                          "required": false,
-                          "deprecated": false,
-                          "type": {
-                            "kind": "primitive",
-                            "type": "number"
-                          }
-                        },
-                        {
-                          "name": "listingCount",
-                          "publicName": "listingCount",
-                          "required": false,
-                          "deprecated": false,
-                          "type": {
-                            "kind": "primitive",
-                            "type": "integer",
-                            "validation": {
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            }
-                          }
-                        },
-                        {
-                          "name": "availableQuantity",
-                          "publicName": "availableQuantity",
-                          "required": false,
-                          "deprecated": false,
-                          "type": {
-                            "kind": "primitive",
-                            "type": "integer",
-                            "validation": {
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            }
-                          }
-                        },
-                        {
-                          "name": "byLanguage",
-                          "publicName": "byLanguage",
-                          "required": false,
-                          "deprecated": false,
-                          "type": {
-                            "kind": "record",
-                            "value": {
-                              "kind": "object",
-                              "properties": [
-                                {
-                                  "name": "low",
-                                  "publicName": "low",
-                                  "required": false,
-                                  "deprecated": false,
-                                  "type": {
-                                    "kind": "primitive",
-                                    "type": "number"
-                                  }
-                                },
-                                {
-                                  "name": "listingCount",
-                                  "publicName": "listingCount",
-                                  "required": false,
-                                  "deprecated": false,
-                                  "type": {
-                                    "kind": "primitive",
-                                    "type": "integer",
-                                    "validation": {
-                                      "minimum": -9007199254740991,
-                                      "maximum": 9007199254740991
-                                    }
-                                  }
-                                },
-                                {
-                                  "name": "availableQuantity",
-                                  "publicName": "availableQuantity",
-                                  "required": false,
-                                  "deprecated": false,
-                                  "type": {
-                                    "kind": "primitive",
-                                    "type": "integer",
-                                    "validation": {
-                                      "minimum": -9007199254740991,
-                                      "maximum": 9007199254740991
-                                    }
-                                  }
-                                }
-                              ],
-                              "additionalProperties": false
-                            },
-                            "propertyNames": {
-                              "kind": "primitive",
-                              "type": "string"
-                            }
-                          }
-                        }
-                      ],
-                      "additionalProperties": false
-                    },
-                    "propertyNames": {
-                      "kind": "primitive",
-                      "type": "string"
-                    }
                   }
                 }
               ],
@@ -8293,7 +7621,9 @@
           "cancelledBy": "buyer",
           "reason": "changed_mind",
           "reasonText": null,
-          "cancelledAt": "2026-06-12T14:20:00.000Z"
+          "cancelledAt": "2026-06-12T14:20:00.000Z",
+          "requestedAt": "2026-06-10T09:00:00.000Z",
+          "autoAcceptAt": null
         }
       },
       "type": {
@@ -8366,6 +7696,54 @@
               "kind": "primitive",
               "type": "string",
               "format": "date-time"
+            }
+          },
+          {
+            "name": "requestedAt",
+            "publicName": "requestedAt",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "2024-08-14T10:23:11.000Z"
+            },
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "name": "date_string"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "autoAcceptAt",
+            "publicName": "autoAcceptAt",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "2024-08-14T10:23:11.000Z"
+            },
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "name": "date_string"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
             }
           }
         ],
@@ -8598,6 +7976,8 @@
           "deliveredAt": null,
           "completedAt": null,
           "shippingService": "tracked",
+          "webUrl": "https://cardnexus.com/orders/OR-ASNBC-1",
+          "shipBy": null,
           "untrackedCloseAt": null,
           "currency": "EUR",
           "items": [
@@ -8675,7 +8055,15 @@
           "metadata": {
             "fulfillment_stage": "packed",
             "internal_order_ref": "SO-10432"
-          }
+          },
+          "labelState": null,
+          "actions": [
+            {
+              "id": "update-tracking",
+              "method": "POST",
+              "path": "/v1/sales/OR-ASNBC-1/tracking"
+            }
+          ]
         }
       },
       "type": {
@@ -8837,6 +8225,40 @@
               "deprecations": [
                 false,
                 false
+              ]
+            }
+          },
+          {
+            "name": "webUrl",
+            "publicName": "webUrl",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "string"
+            }
+          },
+          {
+            "name": "shipBy",
+            "publicName": "shipBy",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "2024-08-14T10:23:11.000Z"
+            },
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "name": "date_string"
+                },
+                {
+                  "kind": "null"
+                }
               ]
             }
           },
@@ -9321,6 +8743,114 @@
               "kind": "ref",
               "name": "order_metadata"
             }
+          },
+          {
+            "name": "labelState",
+            "publicName": "labelState",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "enum",
+                  "values": [
+                    "none",
+                    "created"
+                  ],
+                  "names": [
+                    "None",
+                    "Created"
+                  ],
+                  "deprecations": [
+                    false,
+                    false
+                  ]
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "actions",
+            "publicName": "actions",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "array",
+              "items": {
+                "kind": "object",
+                "properties": [
+                  {
+                    "name": "id",
+                    "publicName": "id",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "enum",
+                      "values": [
+                        "mark-shipped",
+                        "get-shipping-options",
+                        "create-shipping-label",
+                        "cancel",
+                        "accept-cancellation",
+                        "update-tracking"
+                      ],
+                      "names": [
+                        "MarkShipped",
+                        "GetShippingOptions",
+                        "CreateShippingLabel",
+                        "Cancel",
+                        "AcceptCancellation",
+                        "UpdateTracking"
+                      ],
+                      "deprecations": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  },
+                  {
+                    "name": "method",
+                    "publicName": "method",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "enum",
+                      "values": [
+                        "GET",
+                        "POST"
+                      ],
+                      "names": [
+                        "Get",
+                        "Post"
+                      ],
+                      "deprecations": [
+                        false,
+                        false
+                      ]
+                    }
+                  },
+                  {
+                    "name": "path",
+                    "publicName": "path",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "primitive",
+                      "type": "string"
+                    }
+                  }
+                ],
+                "additionalProperties": false
+              }
+            }
           }
         ],
         "additionalProperties": false
@@ -9344,6 +8874,8 @@
           "deliveredAt": null,
           "completedAt": null,
           "shippingService": "tracked",
+          "webUrl": "https://cardnexus.com/orders/OR-ASNBC-1",
+          "shipBy": null,
           "untrackedCloseAt": null,
           "currency": "EUR",
           "items": [
@@ -9422,6 +8954,14 @@
             "fulfillment_stage": "packed",
             "internal_order_ref": "SO-10432"
           },
+          "labelState": null,
+          "actions": [
+            {
+              "id": "update-tracking",
+              "method": "POST",
+              "path": "/v1/sales/OR-ASNBC-1/tracking"
+            }
+          ],
           "shipping": {
             "trackingNumber": "6A18432197431",
             "type": "parcel",
@@ -9598,6 +9138,40 @@
             }
           },
           {
+            "name": "webUrl",
+            "publicName": "webUrl",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "string"
+            }
+          },
+          {
+            "name": "shipBy",
+            "publicName": "shipBy",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "2024-08-14T10:23:11.000Z"
+            },
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "name": "date_string"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
             "name": "untrackedCloseAt",
             "publicName": "untrackedCloseAt",
             "required": true,
@@ -10080,6 +9654,114 @@
             }
           },
           {
+            "name": "labelState",
+            "publicName": "labelState",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "enum",
+                  "values": [
+                    "none",
+                    "created"
+                  ],
+                  "names": [
+                    "None",
+                    "Created"
+                  ],
+                  "deprecations": [
+                    false,
+                    false
+                  ]
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "actions",
+            "publicName": "actions",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "array",
+              "items": {
+                "kind": "object",
+                "properties": [
+                  {
+                    "name": "id",
+                    "publicName": "id",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "enum",
+                      "values": [
+                        "mark-shipped",
+                        "get-shipping-options",
+                        "create-shipping-label",
+                        "cancel",
+                        "accept-cancellation",
+                        "update-tracking"
+                      ],
+                      "names": [
+                        "MarkShipped",
+                        "GetShippingOptions",
+                        "CreateShippingLabel",
+                        "Cancel",
+                        "AcceptCancellation",
+                        "UpdateTracking"
+                      ],
+                      "deprecations": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  },
+                  {
+                    "name": "method",
+                    "publicName": "method",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "enum",
+                      "values": [
+                        "GET",
+                        "POST"
+                      ],
+                      "names": [
+                        "Get",
+                        "Post"
+                      ],
+                      "deprecations": [
+                        false,
+                        false
+                      ]
+                    }
+                  },
+                  {
+                    "name": "path",
+                    "publicName": "path",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "primitive",
+                      "type": "string"
+                    }
+                  }
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
             "name": "shipping",
             "publicName": "shipping",
             "required": true,
@@ -10133,7 +9815,9 @@
                 "cancelledBy": "buyer",
                 "reason": "changed_mind",
                 "reasonText": null,
-                "cancelledAt": "2026-06-12T14:20:00.000Z"
+                "cancelledAt": "2026-06-12T14:20:00.000Z",
+                "requestedAt": "2026-06-10T09:00:00.000Z",
+                "autoAcceptAt": null
               }
             },
             "type": {
@@ -10171,6 +9855,8 @@
           "deliveredAt": "2026-06-17T11:40:00.000Z",
           "completedAt": null,
           "shippingService": "tracked",
+          "webUrl": "https://cardnexus.com/orders/OR-ASNBC-1",
+          "shipBy": null,
           "untrackedCloseAt": null,
           "currency": "EUR",
           "items": [
@@ -10230,7 +9916,14 @@
               "completionRate": 0.98,
               "avgShipTimeHours": 21.4
             }
-          }
+          },
+          "actions": [
+            {
+              "id": "mark-complete",
+              "method": "POST",
+              "path": "/v1/purchases/OR-ASNBC-1/mark-complete"
+            }
+          ]
         }
       },
       "type": {
@@ -10392,6 +10085,40 @@
               "deprecations": [
                 false,
                 false
+              ]
+            }
+          },
+          {
+            "name": "webUrl",
+            "publicName": "webUrl",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "string"
+            }
+          },
+          {
+            "name": "shipBy",
+            "publicName": "shipBy",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "2024-08-14T10:23:11.000Z"
+            },
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "name": "date_string"
+                },
+                {
+                  "kind": "null"
+                }
               ]
             }
           },
@@ -10613,6 +10340,76 @@
               "kind": "ref",
               "name": "order_party"
             }
+          },
+          {
+            "name": "actions",
+            "publicName": "actions",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "array",
+              "items": {
+                "kind": "object",
+                "properties": [
+                  {
+                    "name": "id",
+                    "publicName": "id",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "enum",
+                      "values": [
+                        "mark-complete",
+                        "request-cancellation",
+                        "extend-shipping-deadline"
+                      ],
+                      "names": [
+                        "MarkComplete",
+                        "RequestCancellation",
+                        "ExtendShippingDeadline"
+                      ],
+                      "deprecations": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  },
+                  {
+                    "name": "method",
+                    "publicName": "method",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "enum",
+                      "values": [
+                        "GET",
+                        "POST"
+                      ],
+                      "names": [
+                        "Get",
+                        "Post"
+                      ],
+                      "deprecations": [
+                        false,
+                        false
+                      ]
+                    }
+                  },
+                  {
+                    "name": "path",
+                    "publicName": "path",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "primitive",
+                      "type": "string"
+                    }
+                  }
+                ],
+                "additionalProperties": false
+              }
+            }
           }
         ],
         "additionalProperties": false
@@ -10636,6 +10433,8 @@
           "deliveredAt": "2026-06-17T11:40:00.000Z",
           "completedAt": null,
           "shippingService": "tracked",
+          "webUrl": "https://cardnexus.com/orders/OR-ASNBC-1",
+          "shipBy": null,
           "untrackedCloseAt": null,
           "currency": "EUR",
           "items": [
@@ -10696,6 +10495,13 @@
               "avgShipTimeHours": 21.4
             }
           },
+          "actions": [
+            {
+              "id": "mark-complete",
+              "method": "POST",
+              "path": "/v1/purchases/OR-ASNBC-1/mark-complete"
+            }
+          ],
           "shippingAddress": {
             "recipientName": "Marie Dubois",
             "line1": "14 Rue des Lilas",
@@ -10883,6 +10689,40 @@
             }
           },
           {
+            "name": "webUrl",
+            "publicName": "webUrl",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "string"
+            }
+          },
+          {
+            "name": "shipBy",
+            "publicName": "shipBy",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "2024-08-14T10:23:11.000Z"
+            },
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "name": "date_string"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
             "name": "untrackedCloseAt",
             "publicName": "untrackedCloseAt",
             "required": true,
@@ -11102,6 +10942,76 @@
             }
           },
           {
+            "name": "actions",
+            "publicName": "actions",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "array",
+              "items": {
+                "kind": "object",
+                "properties": [
+                  {
+                    "name": "id",
+                    "publicName": "id",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "enum",
+                      "values": [
+                        "mark-complete",
+                        "request-cancellation",
+                        "extend-shipping-deadline"
+                      ],
+                      "names": [
+                        "MarkComplete",
+                        "RequestCancellation",
+                        "ExtendShippingDeadline"
+                      ],
+                      "deprecations": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  },
+                  {
+                    "name": "method",
+                    "publicName": "method",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "enum",
+                      "values": [
+                        "GET",
+                        "POST"
+                      ],
+                      "names": [
+                        "Get",
+                        "Post"
+                      ],
+                      "deprecations": [
+                        false,
+                        false
+                      ]
+                    }
+                  },
+                  {
+                    "name": "path",
+                    "publicName": "path",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "primitive",
+                      "type": "string"
+                    }
+                  }
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
             "name": "shippingAddress",
             "publicName": "shippingAddress",
             "required": true,
@@ -11198,7 +11108,9 @@
                 "cancelledBy": "buyer",
                 "reason": "changed_mind",
                 "reasonText": null,
-                "cancelledAt": "2026-06-12T14:20:00.000Z"
+                "cancelledAt": "2026-06-12T14:20:00.000Z",
+                "requestedAt": "2026-06-10T09:00:00.000Z",
+                "autoAcceptAt": null
               }
             },
             "type": {
@@ -11369,11 +11281,18 @@
           "comment": "Pack fresh, straight into a toploader",
           "photos": [
             {
-              "url": "https://ik.imagekit.io/cardnexus/cardpicture/2026-06-01T17-40-02-3f9c1a7b2e4d-front.jpg",
+              "url": "https://img.cardnexus.com/cardpicture/2026-06-01T17-40-02-3f9c1a7b2e4d-front.jpg/w1440.webp",
               "width": 1600,
               "height": 1200
             }
           ],
+          "marketPrice": {
+            "amount": 5.1,
+            "currency": "EUR",
+            "region": "eu"
+          },
+          "priceVsMarketPercent": -11.8,
+          "listedAt": "2026-10-20T14:03:11.000Z",
           "seller": {
             "id": "665f3a2b1c8d4e9f7a6b5c4d",
             "username": "north_arena_tcg",
@@ -11383,6 +11302,7 @@
               "average": 4.9,
               "count": 214
             },
+            "verifiedSalesCount": 1534,
             "shipping": {
               "amount": 3.5,
               "currency": "EUR"
@@ -11589,6 +11509,153 @@
             }
           },
           {
+            "name": "marketPrice",
+            "publicName": "marketPrice",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": {
+                "amount": 15.87,
+                "currency": "EUR",
+                "region": "eu"
+              }
+            },
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "object",
+                  "properties": [
+                    {
+                      "name": "amount",
+                      "publicName": "amount",
+                      "required": true,
+                      "deprecated": false,
+                      "type": {
+                        "kind": "primitive",
+                        "type": "number"
+                      }
+                    },
+                    {
+                      "name": "currency",
+                      "publicName": "currency",
+                      "required": true,
+                      "deprecated": false,
+                      "type": {
+                        "kind": "enum",
+                        "values": [
+                          "USD",
+                          "EUR",
+                          "GBP",
+                          "CAD",
+                          "CHF",
+                          "SEK",
+                          "DKK",
+                          "NOK",
+                          "PLN",
+                          "HUF"
+                        ],
+                        "names": [
+                          "Usd",
+                          "Eur",
+                          "Gbp",
+                          "Cad",
+                          "Chf",
+                          "Sek",
+                          "Dkk",
+                          "Nok",
+                          "Pln",
+                          "Huf"
+                        ],
+                        "deprecations": [
+                          false,
+                          false,
+                          false,
+                          false,
+                          false,
+                          false,
+                          false,
+                          false,
+                          false,
+                          false
+                        ]
+                      }
+                    },
+                    {
+                      "name": "region",
+                      "publicName": "region",
+                      "required": true,
+                      "deprecated": false,
+                      "extensions": {
+                        "source": [
+                          "examples"
+                        ],
+                        "examples": "eu"
+                      },
+                      "type": {
+                        "kind": "enum",
+                        "values": [
+                          "eu",
+                          "na"
+                        ],
+                        "names": [
+                          "Eu",
+                          "Na"
+                        ],
+                        "deprecations": [
+                          false,
+                          false
+                        ]
+                      }
+                    }
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "priceVsMarketPercent",
+            "publicName": "priceVsMarketPercent",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "primitive",
+                  "type": "number"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "listedAt",
+            "publicName": "listedAt",
+            "required": true,
+            "deprecated": false,
+            "extensions": {
+              "source": [
+                "examples"
+              ],
+              "examples": "2024-08-14T10:23:11.000Z"
+            },
+            "type": {
+              "kind": "primitive",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
             "name": "seller",
             "publicName": "seller",
             "required": true,
@@ -11609,12 +11676,126 @@
                 "shipping": {
                   "amount": 3.5,
                   "currency": "EUR"
-                }
+                },
+                "verifiedSalesCount": 1534
               }
             },
             "type": {
-              "kind": "ref",
-              "name": "listing_seller"
+              "kind": "object",
+              "properties": [
+                {
+                  "name": "id",
+                  "publicName": "id",
+                  "required": true,
+                  "deprecated": false,
+                  "type": {
+                    "kind": "primitive",
+                    "type": "string"
+                  }
+                },
+                {
+                  "name": "username",
+                  "publicName": "username",
+                  "required": true,
+                  "deprecated": false,
+                  "type": {
+                    "kind": "primitive",
+                    "type": "string"
+                  }
+                },
+                {
+                  "name": "country",
+                  "publicName": "country",
+                  "required": true,
+                  "deprecated": false,
+                  "type": {
+                    "kind": "primitive",
+                    "type": "string"
+                  }
+                },
+                {
+                  "name": "type",
+                  "publicName": "type",
+                  "required": true,
+                  "deprecated": false,
+                  "type": {
+                    "kind": "enum",
+                    "values": [
+                      "pro",
+                      "individual"
+                    ],
+                    "names": [
+                      "Pro",
+                      "Individual"
+                    ],
+                    "deprecations": [
+                      false,
+                      false
+                    ]
+                  }
+                },
+                {
+                  "name": "rating",
+                  "publicName": "rating",
+                  "required": true,
+                  "deprecated": false,
+                  "extensions": {
+                    "source": [
+                      "examples"
+                    ],
+                    "examples": {
+                      "average": 4.9,
+                      "count": 214
+                    }
+                  },
+                  "type": {
+                    "kind": "ref",
+                    "name": "order_party_rating"
+                  }
+                },
+                {
+                  "name": "shipping",
+                  "publicName": "shipping",
+                  "required": true,
+                  "deprecated": false,
+                  "extensions": {
+                    "source": [
+                      "examples"
+                    ],
+                    "examples": {
+                      "amount": 14.99,
+                      "currency": "USD"
+                    }
+                  },
+                  "type": {
+                    "kind": "union",
+                    "variants": [
+                      {
+                        "kind": "ref",
+                        "name": "money"
+                      },
+                      {
+                        "kind": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "verifiedSalesCount",
+                  "publicName": "verifiedSalesCount",
+                  "required": true,
+                  "deprecated": false,
+                  "type": {
+                    "kind": "primitive",
+                    "type": "integer",
+                    "validation": {
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  }
+                }
+              ],
+              "additionalProperties": false
             }
           }
         ],
@@ -11633,6 +11814,7 @@
         "examples": {
           "deliveryCountry": "FR",
           "itemCount": 2,
+          "webUrl": "https://cardnexus.com/cart?signin=1",
           "sellers": [
             {
               "seller": {
@@ -11659,6 +11841,7 @@
                   "productId": 50212,
                   "productName": "Dark Magician (SDMY-EN001)",
                   "imageUrl": "https://images.cardnexus.com/yugioh/SDMY-EN001.png",
+                  "imageCensored": false,
                   "condition": "NM",
                   "language": "en",
                   "finish": "Standard",
@@ -11726,6 +11909,16 @@
                 "name": "cart_seller_group"
               }
             }
+          },
+          {
+            "name": "webUrl",
+            "publicName": "webUrl",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "string"
+            }
           }
         ],
         "additionalProperties": false
@@ -11745,6 +11938,7 @@
           "productId": 50212,
           "productName": "Dark Magician (SDMY-EN001)",
           "imageUrl": "https://images.cardnexus.com/yugioh/SDMY-EN001.png",
+          "imageCensored": false,
           "condition": "NM",
           "language": "en",
           "finish": "Standard",
@@ -11820,6 +12014,16 @@
                   "kind": "null"
                 }
               ]
+            }
+          },
+          {
+            "name": "imageCensored",
+            "publicName": "imageCensored",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "primitive",
+              "type": "boolean"
             }
           },
           {
@@ -12009,6 +12213,7 @@
               "productId": 50212,
               "productName": "Dark Magician (SDMY-EN001)",
               "imageUrl": "https://images.cardnexus.com/yugioh/SDMY-EN001.png",
+              "imageCensored": false,
               "condition": "NM",
               "language": "en",
               "finish": "Standard",
@@ -12252,6 +12457,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -12282,6 +12488,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -12572,6 +12789,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -12613,6 +12831,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -13633,6 +13862,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -13663,6 +13893,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -13750,6 +13991,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -13791,6 +14033,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -13877,6 +14130,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -13907,6 +14161,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -14152,6 +14417,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -14182,6 +14448,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -14286,6 +14563,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -14316,6 +14594,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -14441,6 +14730,8 @@
           "400",
           "401",
           "403",
+          "404",
+          "409",
           "429",
           "500",
           "503"
@@ -14471,6 +14762,28 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -14575,6 +14888,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -14605,6 +14919,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -14677,6 +15002,7 @@
         "name",
         "printNumber",
         "nameSlug",
+        "nameSlugs",
         "cardmarketId",
         "tcgplayerId",
         "productType",
@@ -14684,7 +15010,9 @@
         "gameFilters",
         "listings",
         "sortBy",
-        "sortDirection"
+        "sortDirection",
+        "cursor",
+        "includeTotal"
       ],
       "publicBodyParams": [
         "offset",
@@ -14694,6 +15022,7 @@
         "name",
         "printNumber",
         "nameSlug",
+        "nameSlugs",
         "cardmarketId",
         "tcgplayerId",
         "productType",
@@ -14701,7 +15030,9 @@
         "gameFilters",
         "listings",
         "sortBy",
-        "sortDirection"
+        "sortDirection",
+        "cursor",
+        "includeTotal"
       ],
       "bodyParamDetails": [
         {
@@ -14730,6 +15061,10 @@
         },
         {
           "name": "nameSlug",
+          "required": false
+        },
+        {
+          "name": "nameSlugs",
           "required": false
         },
         {
@@ -14762,6 +15097,14 @@
         },
         {
           "name": "sortDirection",
+          "required": false
+        },
+        {
+          "name": "cursor",
+          "required": false
+        },
+        {
+          "name": "includeTotal",
           "required": false
         }
       ],
@@ -14811,6 +15154,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -14841,6 +15185,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -14941,6 +15296,8 @@
           "400",
           "401",
           "403",
+          "404",
+          "409",
           "429",
           "500",
           "503"
@@ -14971,6 +15328,28 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -15038,7 +15417,10 @@
         "language",
         "finish",
         "region",
-        "deliveryCountry"
+        "deliveryCountry",
+        "graded",
+        "sortBy",
+        "sortDirection"
       ],
       "publicQueryParams": [
         "cursor",
@@ -15047,7 +15429,10 @@
         "language",
         "finish",
         "region",
-        "deliveryCountry"
+        "deliveryCountry",
+        "graded",
+        "sortBy",
+        "sortDirection"
       ],
       "headerParams": [],
       "publicHeaderParams": [],
@@ -15119,6 +15504,30 @@
           "explode": true,
           "allowReserved": true,
           "allowEmptyValue": true
+        },
+        {
+          "name": "graded",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
+          "name": "sortBy",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
+          "name": "sortDirection",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
         }
       ],
       "headerParamDetails": [],
@@ -15146,6 +15555,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -15187,6 +15597,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -15304,6 +15725,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -15334,6 +15756,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -15434,6 +15867,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -15464,6 +15898,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -15564,6 +16009,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -15594,6 +16040,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -15694,6 +16151,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -15724,6 +16182,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -15824,6 +16293,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -15854,6 +16324,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -15989,6 +16470,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -16019,6 +16501,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -16120,6 +16613,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -16161,6 +16655,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -16305,6 +16810,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -16346,6 +16852,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -16501,6 +17018,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -16542,6 +17060,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -16677,6 +17206,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -16707,6 +17237,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -16808,6 +17349,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -16849,6 +17391,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -17119,6 +17672,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -17149,6 +17703,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -17252,6 +17817,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -17282,6 +17848,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -17399,6 +17976,7 @@
           "400",
           "401",
           "403",
+          "409",
           "422",
           "429",
           "500",
@@ -17430,6 +18008,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -17738,6 +18327,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -17768,6 +18358,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -18011,6 +18612,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -18041,6 +18643,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -18152,6 +18765,7 @@
           "400",
           "401",
           "403",
+          "409",
           "422",
           "429",
           "500",
@@ -18183,6 +18797,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -18268,6 +18893,8 @@
         "customIdPrefix",
         "customIdContains",
         "commentContains",
+        "inventoryIds",
+        "customIds",
         "productIds",
         "expansionId",
         "tags",
@@ -18282,8 +18909,19 @@
         "quantity",
         "listingPrice",
         "gameFilters",
+        "updatedSince",
+        "marketPrice",
+        "hasMarketPrice",
+        "priceVsMarket",
+        "priceCheckGroup",
+        "marketChange",
+        "cursor",
+        "includeTotal",
+        "includeMarket",
         "sortBy",
-        "sortDirection"
+        "sortDirection",
+        "changePeriod",
+        "weightByQuantity"
       ],
       "publicBodyParams": [
         "offset",
@@ -18295,6 +18933,8 @@
         "customIdPrefix",
         "customIdContains",
         "commentContains",
+        "inventoryIds",
+        "customIds",
         "productIds",
         "expansionId",
         "tags",
@@ -18309,8 +18949,19 @@
         "quantity",
         "listingPrice",
         "gameFilters",
+        "updatedSince",
+        "marketPrice",
+        "hasMarketPrice",
+        "priceVsMarket",
+        "priceCheckGroup",
+        "marketChange",
+        "cursor",
+        "includeTotal",
+        "includeMarket",
         "sortBy",
-        "sortDirection"
+        "sortDirection",
+        "changePeriod",
+        "weightByQuantity"
       ],
       "bodyParamDetails": [
         {
@@ -18347,6 +18998,14 @@
         },
         {
           "name": "commentContains",
+          "required": false
+        },
+        {
+          "name": "inventoryIds",
+          "required": false
+        },
+        {
+          "name": "customIds",
           "required": false
         },
         {
@@ -18406,11 +19065,55 @@
           "required": false
         },
         {
+          "name": "updatedSince",
+          "required": false
+        },
+        {
+          "name": "marketPrice",
+          "required": false
+        },
+        {
+          "name": "hasMarketPrice",
+          "required": false
+        },
+        {
+          "name": "priceVsMarket",
+          "required": false
+        },
+        {
+          "name": "priceCheckGroup",
+          "required": false
+        },
+        {
+          "name": "marketChange",
+          "required": false
+        },
+        {
+          "name": "cursor",
+          "required": false
+        },
+        {
+          "name": "includeTotal",
+          "required": false
+        },
+        {
+          "name": "includeMarket",
+          "required": false
+        },
+        {
           "name": "sortBy",
           "required": false
         },
         {
           "name": "sortDirection",
+          "required": false
+        },
+        {
+          "name": "changePeriod",
+          "required": false
+        },
+        {
+          "name": "weightByQuantity",
           "required": false
         }
       ],
@@ -18460,6 +19163,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -18490,6 +19194,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -18591,6 +19306,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -18632,6 +19348,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -19000,6 +19727,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -19041,6 +19769,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -19164,6 +19903,7 @@
           "401",
           "403",
           "404",
+          "409",
           "413",
           "429",
           "500",
@@ -19206,6 +19946,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -19340,6 +20091,7 @@
           "400",
           "401",
           "403",
+          "409",
           "413",
           "429",
           "500",
@@ -19371,6 +20123,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -19499,6 +20262,7 @@
           "400",
           "401",
           "403",
+          "409",
           "413",
           "422",
           "429",
@@ -19531,6 +20295,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -19670,6 +20445,7 @@
           "400",
           "401",
           "403",
+          "409",
           "413",
           "422",
           "429",
@@ -19702,6 +20478,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -19841,6 +20628,7 @@
           "400",
           "401",
           "403",
+          "409",
           "413",
           "422",
           "429",
@@ -19873,6 +20661,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -20023,6 +20822,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -20053,6 +20853,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -20307,6 +21118,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -20348,6 +21160,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -20434,6 +21257,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -20464,6 +21288,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -20937,6 +21772,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -20978,6 +21814,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -21064,6 +21911,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -21094,6 +21942,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -21567,6 +22426,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -21608,6 +22468,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -21841,6 +22712,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -21871,6 +22743,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -22188,6 +23071,7 @@
           "401",
           "403",
           "404",
+          "409",
           "422",
           "429",
           "500",
@@ -22230,6 +23114,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -22571,6 +23466,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -22601,6 +23497,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -22850,8 +23757,12 @@
       "publicPathParams": [
         "listId"
       ],
-      "queryParams": [],
-      "publicQueryParams": [],
+      "queryParams": [
+        "includeItems"
+      ],
+      "publicQueryParams": [
+        "includeItems"
+      ],
       "headerParams": [],
       "publicHeaderParams": [],
       "bodyParams": [],
@@ -22865,7 +23776,17 @@
           "explode": false
         }
       ],
-      "queryParamDetails": [],
+      "queryParamDetails": [
+        {
+          "name": "includeItems",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true,
+          "defaultValue": true
+        }
+      ],
       "headerParamDetails": [],
       "cookieParams": [],
       "publicCookieParams": [],
@@ -22891,6 +23812,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -22932,6 +23854,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -23091,6 +24024,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -23132,6 +24066,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -23246,6 +24191,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -23287,6 +24233,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -23410,6 +24367,7 @@
           "401",
           "403",
           "404",
+          "409",
           "422",
           "429",
           "500",
@@ -23452,6 +24410,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -23585,6 +24554,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -23626,6 +24596,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -23688,7 +24669,15 @@
         "status",
         "placedFrom",
         "placedTo",
-        "metadata"
+        "includeTotal",
+        "needsAction",
+        "dispute",
+        "shipByBefore",
+        "orderNumberPrefix",
+        "metadata",
+        "shipByAfter",
+        "buyer",
+        "sort"
       ],
       "publicQueryParams": [
         "cursor",
@@ -23696,7 +24685,15 @@
         "status",
         "placedFrom",
         "placedTo",
-        "metadata"
+        "includeTotal",
+        "needsAction",
+        "dispute",
+        "shipByBefore",
+        "orderNumberPrefix",
+        "metadata",
+        "shipByAfter",
+        "buyer",
+        "sort"
       ],
       "headerParams": [],
       "publicHeaderParams": [],
@@ -23747,9 +24744,74 @@
           "allowEmptyValue": true
         },
         {
+          "name": "includeTotal",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true,
+          "defaultValue": false
+        },
+        {
+          "name": "needsAction",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
+          "name": "dispute",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
+          "name": "shipByBefore",
+          "required": false,
+          "style": "deepObject",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
+          "name": "orderNumberPrefix",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
           "name": "metadata",
           "required": false,
           "style": "deepObject",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
+          "name": "shipByAfter",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
+          "name": "buyer",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
+          "name": "sort",
+          "required": false,
+          "style": "form",
           "explode": true,
           "allowReserved": true,
           "allowEmptyValue": true
@@ -23779,6 +24841,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -23809,6 +24872,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -23914,6 +24988,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -23955,6 +25030,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -24022,11 +25108,13 @@
       "bodyParams": [
         "trackingNumber",
         "trackingUrl",
+        "signatureConfirmed",
         "metadata"
       ],
       "publicBodyParams": [
         "trackingNumber",
         "trackingUrl",
+        "signatureConfirmed",
         "metadata"
       ],
       "bodyParamDetails": [
@@ -24036,6 +25124,10 @@
         },
         {
           "name": "trackingUrl",
+          "required": false
+        },
+        {
+          "name": "signatureConfirmed",
           "required": false
         },
         {
@@ -24664,6 +25756,7 @@
           "401",
           "403",
           "404",
+          "409",
           "422",
           "429",
           "500",
@@ -24706,6 +25799,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -24778,14 +25882,26 @@
         "limit",
         "status",
         "placedFrom",
-        "placedTo"
+        "placedTo",
+        "includeTotal",
+        "needsAction",
+        "dispute",
+        "shipByBefore",
+        "orderNumberPrefix",
+        "seller"
       ],
       "publicQueryParams": [
         "cursor",
         "limit",
         "status",
         "placedFrom",
-        "placedTo"
+        "placedTo",
+        "includeTotal",
+        "needsAction",
+        "dispute",
+        "shipByBefore",
+        "orderNumberPrefix",
+        "seller"
       ],
       "headerParams": [],
       "publicHeaderParams": [],
@@ -24834,6 +25950,55 @@
           "explode": true,
           "allowReserved": true,
           "allowEmptyValue": true
+        },
+        {
+          "name": "includeTotal",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true,
+          "defaultValue": false
+        },
+        {
+          "name": "needsAction",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
+          "name": "dispute",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
+          "name": "shipByBefore",
+          "required": false,
+          "style": "deepObject",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
+          "name": "orderNumberPrefix",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
+        },
+        {
+          "name": "seller",
+          "required": false,
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true
         }
       ],
       "headerParamDetails": [],
@@ -24860,6 +26025,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -24890,6 +26056,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -24995,6 +26172,7 @@
           "401",
           "403",
           "404",
+          "409",
           "429",
           "500",
           "503"
@@ -25036,6 +26214,17 @@
         },
         {
           "status": "404",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -25147,6 +26336,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -25177,6 +26367,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -25288,6 +26489,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "503"
@@ -25318,6 +26520,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [
@@ -25642,6 +26855,7 @@
           "400",
           "401",
           "403",
+          "409",
           "429",
           "500",
           "502",
@@ -25673,6 +26887,17 @@
         },
         {
           "status": "403",
+          "contentType": "application/json",
+          "encoding": "json",
+          "contents": [
+            {
+              "contentType": "application/json",
+              "encoding": "json"
+            }
+          ]
+        },
+        {
+          "status": "409",
           "contentType": "application/json",
           "encoding": "json",
           "contents": [

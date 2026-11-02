@@ -82,13 +82,13 @@ export class Feeds extends APIResource {
   /**
    * Returns a download link and metadata for a game's prices feed.
    *
-   * The file is gzip-compressed, newline-delimited JSON. Each line is one product: its current Cardmarket, TCGplayer, and CardNexus marketplace prices, broken down by finish — the same price blocks as `GET /v1/products/{productId}/prices`. Products link back to the catalog feed by `productId`. The download is the literal gzip bytes — your HTTP client will not decompress it automatically. Gunzip the file before reading it; see https://docs.cardnexus.com/feeds for download examples in Node and Python.
+   * The file is gzip-compressed, newline-delimited JSON. Each line is one product: its current CardNexus marketplace prices and, with the `bulk-market-values` data permission, its Cardmarket and TCGplayer market values, broken down by finish — the same price blocks as `GET /v1/products/{productId}/prices`. Callers without the permission get a link to the CardNexus-only file: the same records without the `cardmarket` and `tcgplayer` blocks, and no record for a product with no live CardNexus listing. The request succeeds either way. Products link back to the catalog feed by `productId`. The download is the literal gzip bytes — your HTTP client will not decompress it automatically. Gunzip the file before reading it; see https://docs.cardnexus.com/feeds for download examples in Node and Python.
    *
    * The prices feed is rebuilt when a game's prices are refreshed. The `url` is a time-limited download link; request this endpoint again for a fresh link once it expires.
    *
    * The file's record shape (one product per line) is documented at https://docs.cardnexus.com/feeds/prices.
    *
-   * Authentication is required (any valid API key); no scope.
+   * Authentication is required (any valid API key); no scope. The `bulk-market-values` data permission decides which file the link points to.
    *
    * @param {string} gameID - The game's identifier (e.g. `mtg`, `pokemon`). Returned by `GET /v1/games`.
    * @param {RequestOptions} [options] - Options to apply to the request, such as headers and an abort signal.
