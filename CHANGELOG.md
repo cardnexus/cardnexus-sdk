@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.5.0](https://github.com/cardnexus/cardnexus-sdk/compare/v0.4.0...v0.5.0) (2026-11-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **api:** 22 breaking changes to the SDK surface.
+    - Property `card_product.availability` shape changed (`object`).
+    - Property `sealed_product.availability` shape changed (`object`).
+    - Property `card_product_detail.availability` shape changed (`object`).
+    - Property `sealed_product_detail.availability` shape changed (`object`).
+    - Added required property `order_line_item.uniqueKinds`.
+    - Added required property `sale.shipsOn`.
+    - Property `sale.items` shape changed (`Array<object>`).
+    - Property `sale.actions` shape changed (`Array<object>`).
+    - Added required property `sale_detail.shipsOn`.
+    - Property `sale_detail.items` shape changed (`Array<object>`).
+    - Property `sale_detail.actions` shape changed (`Array<object>`).
+    - Added required property `purchase.shipsOn`.
+    - Property `purchase.actions` shape changed (`Array<object>`).
+    - Added required property `purchase_detail.shipsOn`.
+    - Property `purchase_detail.actions` shape changed (`Array<object>`).
+    - Added required property `product_listing.uniqueKinds`.
+    - Added required property `cart_item.uniqueKinds`.
+    - Added required property `cart_item.shipsOn`.
+    - Added required property `cart_seller_group.shipments`.
+    - Removed schema `forbidden_error_data`.
+    - Removed schema `rate_limit_error_data`.
+    - Removed schema `validation_error_data`.
+
+### Features
+
+* **api:** update property card_product.availability (+23 more changes) ([f1219e3](https://github.com/cardnexus/cardnexus-sdk/commit/f1219e30fb6ca3cf2acd4cf8897c74f6bf58e7a8))
+
 ## [0.4.0](https://github.com/cardnexus/cardnexus-sdk/compare/v0.3.0...v0.4.0) (2026-11-02)
 
 
