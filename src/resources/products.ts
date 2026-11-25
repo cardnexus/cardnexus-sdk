@@ -455,7 +455,7 @@ export namespace CardProduct {
      */
     listingCount: number;
     /**
-     * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. `null` when none qualifies.
+     * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. A regular copy goes before a signed, altered, misprinted, artist proof or serialized one, whatever their prices. `null` when none qualifies.
      */
     cheapest: Availability.Cheapest | null;
   }
@@ -523,6 +523,10 @@ export namespace CardProduct {
        * The card's language, as an ISO 639 code.
        */
       language: string | null;
+      /**
+       * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. `null` for a regular copy.
+       */
+      uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
       /**
        * The seller behind this listing.
        */
@@ -850,7 +854,7 @@ export namespace SealedProduct {
      */
     listingCount: number;
     /**
-     * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. `null` when none qualifies.
+     * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. A regular copy goes before a signed, altered, misprinted, artist proof or serialized one, whatever their prices. `null` when none qualifies.
      */
     cheapest: Availability.Cheapest | null;
   }
@@ -918,6 +922,10 @@ export namespace SealedProduct {
        * The card's language, as an ISO 639 code.
        */
       language: string | null;
+      /**
+       * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. `null` for a regular copy.
+       */
+      uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
       /**
        * The seller behind this listing.
        */
@@ -1093,7 +1101,7 @@ export namespace CardProductDetail {
      */
     listingCount: number;
     /**
-     * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. `null` when none qualifies.
+     * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. A regular copy goes before a signed, altered, misprinted, artist proof or serialized one, whatever their prices. `null` when none qualifies.
      */
     cheapest: Availability.Cheapest | null;
   }
@@ -1161,6 +1169,10 @@ export namespace CardProductDetail {
        * The card's language, as an ISO 639 code.
        */
       language: string | null;
+      /**
+       * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. `null` for a regular copy.
+       */
+      uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
       /**
        * The seller behind this listing.
        */
@@ -1488,7 +1500,7 @@ export namespace SealedProductDetail {
      */
     listingCount: number;
     /**
-     * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. `null` when none qualifies.
+     * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. A regular copy goes before a signed, altered, misprinted, artist proof or serialized one, whatever their prices. `null` when none qualifies.
      */
     cheapest: Availability.Cheapest | null;
   }
@@ -1556,6 +1568,10 @@ export namespace SealedProductDetail {
        * The card's language, as an ISO 639 code.
        */
       language: string | null;
+      /**
+       * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. `null` for a regular copy.
+       */
+      uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
       /**
        * The seller behind this listing.
        */
@@ -1635,6 +1651,10 @@ export interface ProductListing {
    * Grading details when the card is graded. `null` for raw cards and sealed products.
    */
   graded: LinesAPI.Graded | null;
+  /**
+   * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. `null` for a regular copy.
+   */
+  uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
   /**
    * The seller's note about this listing. `null` when there is none.
    */
@@ -2491,6 +2511,9 @@ export namespace ProductSearchParams {
       color?: Filters.Color;
       colorIdentity?: Filters.ColorIdentity;
       rarity?: Filters.Rarity;
+      type?: Filters.Type;
+      manaValue?: Filters.ManaValue | Filters.ManaValue2;
+      leadership?: Filters.Leadership;
       languages?: Filters.Languages;
     }
 
@@ -2522,6 +2545,59 @@ export namespace ProductSearchParams {
       export interface Rarity {
         op: 'and' | 'or';
         values: Array<'bonus' | 'common' | 'uncommon' | 'rare' | 'mythic' | 'special'>;
+      }
+
+      export interface Type {
+        op: 'and' | 'or';
+        values: Array<
+          | 'Creature'
+          | 'Planeswalker'
+          | 'Battle'
+          | 'Artifact'
+          | 'Enchantment'
+          | 'Instant'
+          | 'Sorcery'
+          | 'Land'
+          | 'Other'
+        >;
+      }
+
+      export interface ManaValue {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface ManaValue2 {
+        min: number;
+        max: number;
+      }
+
+      export interface Leadership {
+        op: 'and' | 'or';
+        values: Array<
+          | 'alchemy'
+          | 'brawl'
+          | 'commander'
+          | 'duel'
+          | 'future'
+          | 'gladiator'
+          | 'historic'
+          | 'legacy'
+          | 'modern'
+          | 'oathbreaker'
+          | 'oldschool'
+          | 'pauper'
+          | 'paupercommander'
+          | 'penny'
+          | 'pioneer'
+          | 'predh'
+          | 'premodern'
+          | 'standard'
+          | 'standardbrawl'
+          | 'competitivebrawl'
+          | 'timeless'
+          | 'vintage'
+        >;
       }
 
       export interface Languages {
@@ -4324,6 +4400,7 @@ export namespace ProductSearchParams {
           | 'Anivia'
           | 'Annie'
           | 'Aphelios'
+          | 'Ashe'
           | 'Azir'
           | 'Bard'
           | 'Blitzcrank'
@@ -4333,17 +4410,23 @@ export namespace ProductSearchParams {
           | 'Dr. Mundo'
           | 'Draven'
           | 'Ekko'
+          | 'Evelynn'
           | 'Ezreal'
           | 'Fiora'
           | 'Fizz'
           | 'Gangplank'
           | 'Garen'
+          | 'Graves'
           | 'Heimerdinger'
+          | 'Hwei'
           | 'Illaoi'
           | 'Irelia'
+          | 'Ivern'
           | 'Janna'
+          | 'Jarvan IV'
           | 'Jax'
           | 'Jayce'
+          | 'Jhin'
           | 'Jinx'
           | "Kai'Sa"
           | 'Karma'
@@ -4353,31 +4436,46 @@ export namespace ProductSearchParams {
           | 'Kennen'
           | "Kha'Zix"
           | "Kog'Maw"
+          | "K'Sante"
+          | 'LeBlanc'
           | 'Lee Sin'
           | 'Leona'
+          | 'Lillia'
           | 'Lucian'
+          | 'Lulu'
           | 'Lux'
           | 'Malzahar'
           | 'Master Yi'
           | 'Mel'
           | 'Miss Fortune'
+          | 'Mordekaiser'
           | 'Morgana'
+          | 'Nami'
           | 'Nasus'
+          | 'Neeko'
+          | 'Nidalee'
+          | 'Nilah'
           | 'Nocturne'
+          | 'Orianna'
           | 'Ornn'
+          | 'Poppy'
+          | 'Pyke'
           | 'Qiyana'
           | "Rek'Sai"
+          | 'Rell'
           | 'Renata Glasc'
           | 'Renekton'
           | 'Rengar'
           | 'Riven'
           | 'Rumble'
+          | 'Seraphine'
           | 'Sett'
           | 'Shen'
           | 'Sivir'
           | 'Sona'
           | 'Soraka'
           | 'Swain'
+          | 'Syndra'
           | 'Taric'
           | 'Teemo'
           | 'Tryndamere'
@@ -4389,10 +4487,13 @@ export namespace ProductSearchParams {
           | 'Viktor'
           | 'Volibear'
           | 'Warwick'
+          | 'Xerath'
           | 'Xin Zhao'
           | 'Yasuo'
           | 'Yone'
+          | 'Yuumi'
           | 'Zed'
+          | 'Ziggs'
           | 'Bandle City'
           | 'Bilgewater'
           | 'Demacia'
@@ -4408,13 +4509,16 @@ export namespace ProductSearchParams {
           | 'The Void'
           | 'Zaun'
           | 'Bird'
+          | 'Bomb'
           | 'Cat'
           | 'Demon'
+          | 'Device'
           | 'Dog'
           | 'Dragon'
           | 'Elite'
           | 'Equipment'
           | 'Fae'
+          | 'Kathkan'
           | 'Mech'
           | 'Mystic'
           | 'Ninja'
@@ -6955,7 +7059,7 @@ export namespace ProductRetrieveResponse {
        */
       listingCount: number;
       /**
-       * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. `null` when none qualifies.
+       * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. A regular copy goes before a signed, altered, misprinted, artist proof or serialized one, whatever their prices. `null` when none qualifies.
        */
       cheapest: Availability.Cheapest | null;
     }
@@ -7023,6 +7127,10 @@ export namespace ProductRetrieveResponse {
          * The card's language, as an ISO 639 code.
          */
         language: string | null;
+        /**
+         * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. `null` for a regular copy.
+         */
+        uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
         /**
          * The seller behind this listing.
          */
@@ -7350,7 +7458,7 @@ export namespace ProductRetrieveResponse {
        */
       listingCount: number;
       /**
-       * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. `null` when none qualifies.
+       * The cheapest of the five cheapest matching copies that qualifies, compared on `priceEur`. A regular copy goes before a signed, altered, misprinted, artist proof or serialized one, whatever their prices. `null` when none qualifies.
        */
       cheapest: Availability.Cheapest | null;
     }
@@ -7418,6 +7526,10 @@ export namespace ProductRetrieveResponse {
          * The card's language, as an ISO 639 code.
          */
         language: string | null;
+        /**
+         * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. `null` for a regular copy.
+         */
+        uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
         /**
          * The seller behind this listing.
          */

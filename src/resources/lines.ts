@@ -51,7 +51,7 @@ export class Lines extends APIResource {
    *
    * Lines are processed one by one: valid lines land in `created`, rejected lines are reported in `errors` with the position they had in your request. The response status is 200 even when some — or all — lines were rejected, so check both fields.
    *
-   * A new line without a `customId` that matches an existing line of yours exactly (same product, finish, condition, language, grading, and listing state) merges into it: the quantity is added to the existing line, and that line is returned in `created`.
+   * A new line that matches an existing line of yours (same product, finish, condition, language, grading, listing state, `comment`, and `location`, neither line carrying a `customId` or `uniqueKinds`) merges into it: the quantity is added to the existing line, and that line is returned in `created`. A line sent with `tags` merges only into a line with exactly those tags, and `tags: []` only into a line with no tags. A line sent without `tags` merges into a matching line whatever its tags, and that line keeps them.
    *
    * When any line carries a `listing`, your seller account must be active and every listing price must use your seller currency.
    *
@@ -177,7 +177,7 @@ export class Lines extends APIResource {
    *
    * `count` applies the attribute changes to only part of the line. When `count` is lower than the line's quantity, the line splits: `count` cards take the changes and come back as `line`, the rest stays unchanged and comes back as `remainder`. The split-off part inherits the original line's `comment` unless you send a new one, and never inherits its `customId` — send `customId` to give the new part its own. `count` needs at least one attribute change and cannot be combined with `quantity`.
    *
-   * If the changes make this line identical to another of your lines (same product, finish, condition, language, grading, and listing state, neither line carrying a `customId`), the two merge; `line` is the surviving line.
+   * If the changes make this line identical to another of your lines (same product, finish, condition, language, grading, listing state, `comment`, `location`, and `tags`, neither line carrying a `customId` or `uniqueKinds`), the two merge; `line` is the surviving line.
    *
    * Send an `Idempotency-Key` header to make retries safe: the same key returns the same response for 24 hours.
    *
@@ -447,6 +447,10 @@ export namespace LineListResponse {
      * Grading details when the card is graded. `null` for raw cards.
      */
     graded: Graded | null;
+    /**
+     * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. Such a line holds one card. `null` for a regular copy.
+     */
+    uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
     /**
      * `true` when this line is published to the Marketplace with a price. `false` when it sits in your Collection.
      */
@@ -722,6 +726,10 @@ export namespace LineCreateResponse {
      */
     graded: Graded | null;
     /**
+     * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. Such a line holds one card. `null` for a regular copy.
+     */
+    uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
+    /**
      * `true` when this line is published to the Marketplace with a price. `false` when it sits in your Collection.
      */
     forSale: boolean;
@@ -777,7 +785,7 @@ export namespace LineCreateResponse {
      */
     index: number;
     /**
-     * Why the line was rejected. `PRODUCT_NOT_FOUND`: no catalogue product with this id. `INVALID_LANGUAGE`: the product does not exist in this language. `INVALID_FINISH`: the product does not exist in this finish. `INVALID_QUANTITY`: quantity must be a whole number of 1 or more. `CONDITION_REQUIRED`: raw cards need a `condition`. `INVALID_IDENTITY`: a line takes either `condition` (raw cards) or `graded` (graded cards), not both. `CUSTOM_ID_CONFLICT`: another of your live lines (or another line in this request) already uses this `customId`. `LOCATION_NOT_FOUND`: the `location` name matches none of your locations. `TAG_NOT_FOUND`: a `tags` name matches none of your tags.
+     * Why the line was rejected. `PRODUCT_NOT_FOUND`: no catalogue product with this id. `INVALID_LANGUAGE`: the product does not exist in this language. `INVALID_FINISH`: the product does not exist in this finish. `INVALID_QUANTITY`: quantity must be a whole number of 1 or more. `CONDITION_REQUIRED`: raw cards need a `condition`. `INVALID_IDENTITY`: a line takes either `condition` (raw cards) or `graded` (graded cards), not both. `CUSTOM_ID_CONFLICT`: another of your live lines (or another line in this request) already uses this `customId`. `LOCATION_NOT_FOUND`: the `location` name matches none of your locations. `TAG_NOT_FOUND`: a `tags` name matches none of your tags. `UNRELEASED_SEALED_PRO_ONLY`: the line carries a `listing` and you are not a pro seller: only pro sellers list a sealed product whose set is not released yet; it sells as a pre-order shipping on the release date.
      */
     code:
       | 'PRODUCT_NOT_FOUND'
@@ -788,7 +796,8 @@ export namespace LineCreateResponse {
       | 'INVALID_IDENTITY'
       | 'CUSTOM_ID_CONFLICT'
       | 'LOCATION_NOT_FOUND'
-      | 'TAG_NOT_FOUND';
+      | 'TAG_NOT_FOUND'
+      | 'UNRELEASED_SEALED_PRO_ONLY';
     /**
      * The values that caused the rejection, e.g. the product id that was not found.
      */
@@ -1501,6 +1510,9 @@ export namespace LineSearchParams {
       color?: Filters.Color;
       colorIdentity?: Filters.ColorIdentity;
       rarity?: Filters.Rarity;
+      type?: Filters.Type;
+      manaValue?: Filters.ManaValue | Filters.ManaValue2;
+      leadership?: Filters.Leadership;
       languages?: Filters.Languages;
     }
 
@@ -1532,6 +1544,59 @@ export namespace LineSearchParams {
       export interface Rarity {
         op: 'and' | 'or';
         values: Array<'bonus' | 'common' | 'uncommon' | 'rare' | 'mythic' | 'special'>;
+      }
+
+      export interface Type {
+        op: 'and' | 'or';
+        values: Array<
+          | 'Creature'
+          | 'Planeswalker'
+          | 'Battle'
+          | 'Artifact'
+          | 'Enchantment'
+          | 'Instant'
+          | 'Sorcery'
+          | 'Land'
+          | 'Other'
+        >;
+      }
+
+      export interface ManaValue {
+        op: '=' | '>' | '<';
+        value: number;
+      }
+
+      export interface ManaValue2 {
+        min: number;
+        max: number;
+      }
+
+      export interface Leadership {
+        op: 'and' | 'or';
+        values: Array<
+          | 'alchemy'
+          | 'brawl'
+          | 'commander'
+          | 'duel'
+          | 'future'
+          | 'gladiator'
+          | 'historic'
+          | 'legacy'
+          | 'modern'
+          | 'oathbreaker'
+          | 'oldschool'
+          | 'pauper'
+          | 'paupercommander'
+          | 'penny'
+          | 'pioneer'
+          | 'predh'
+          | 'premodern'
+          | 'standard'
+          | 'standardbrawl'
+          | 'competitivebrawl'
+          | 'timeless'
+          | 'vintage'
+        >;
       }
 
       export interface Languages {
@@ -3334,6 +3399,7 @@ export namespace LineSearchParams {
           | 'Anivia'
           | 'Annie'
           | 'Aphelios'
+          | 'Ashe'
           | 'Azir'
           | 'Bard'
           | 'Blitzcrank'
@@ -3343,17 +3409,23 @@ export namespace LineSearchParams {
           | 'Dr. Mundo'
           | 'Draven'
           | 'Ekko'
+          | 'Evelynn'
           | 'Ezreal'
           | 'Fiora'
           | 'Fizz'
           | 'Gangplank'
           | 'Garen'
+          | 'Graves'
           | 'Heimerdinger'
+          | 'Hwei'
           | 'Illaoi'
           | 'Irelia'
+          | 'Ivern'
           | 'Janna'
+          | 'Jarvan IV'
           | 'Jax'
           | 'Jayce'
+          | 'Jhin'
           | 'Jinx'
           | "Kai'Sa"
           | 'Karma'
@@ -3363,31 +3435,46 @@ export namespace LineSearchParams {
           | 'Kennen'
           | "Kha'Zix"
           | "Kog'Maw"
+          | "K'Sante"
+          | 'LeBlanc'
           | 'Lee Sin'
           | 'Leona'
+          | 'Lillia'
           | 'Lucian'
+          | 'Lulu'
           | 'Lux'
           | 'Malzahar'
           | 'Master Yi'
           | 'Mel'
           | 'Miss Fortune'
+          | 'Mordekaiser'
           | 'Morgana'
+          | 'Nami'
           | 'Nasus'
+          | 'Neeko'
+          | 'Nidalee'
+          | 'Nilah'
           | 'Nocturne'
+          | 'Orianna'
           | 'Ornn'
+          | 'Poppy'
+          | 'Pyke'
           | 'Qiyana'
           | "Rek'Sai"
+          | 'Rell'
           | 'Renata Glasc'
           | 'Renekton'
           | 'Rengar'
           | 'Riven'
           | 'Rumble'
+          | 'Seraphine'
           | 'Sett'
           | 'Shen'
           | 'Sivir'
           | 'Sona'
           | 'Soraka'
           | 'Swain'
+          | 'Syndra'
           | 'Taric'
           | 'Teemo'
           | 'Tryndamere'
@@ -3399,10 +3486,13 @@ export namespace LineSearchParams {
           | 'Viktor'
           | 'Volibear'
           | 'Warwick'
+          | 'Xerath'
           | 'Xin Zhao'
           | 'Yasuo'
           | 'Yone'
+          | 'Yuumi'
           | 'Zed'
+          | 'Ziggs'
           | 'Bandle City'
           | 'Bilgewater'
           | 'Demacia'
@@ -3418,13 +3508,16 @@ export namespace LineSearchParams {
           | 'The Void'
           | 'Zaun'
           | 'Bird'
+          | 'Bomb'
           | 'Cat'
           | 'Demon'
+          | 'Device'
           | 'Dog'
           | 'Dragon'
           | 'Elite'
           | 'Equipment'
           | 'Fae'
+          | 'Kathkan'
           | 'Mech'
           | 'Mystic'
           | 'Ninja'
@@ -5846,6 +5939,10 @@ export namespace LineSearchResponse {
      */
     graded: Graded | null;
     /**
+     * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. Such a line holds one card. `null` for a regular copy.
+     */
+    uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
+    /**
      * `true` when this line is published to the Marketplace with a price. `false` when it sits in your Collection.
      */
     forSale: boolean;
@@ -6034,6 +6131,10 @@ export interface LineRetrieveResponse {
    * Grading details when the card is graded. `null` for raw cards.
    */
   graded: Graded | null;
+  /**
+   * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. Such a line holds one card. `null` for a regular copy.
+   */
+  uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
   /**
    * `true` when this line is published to the Marketplace with a price. `false` when it sits in your Collection.
    */
@@ -6320,6 +6421,10 @@ export namespace LineUpdateResponse {
      */
     graded: Graded | null;
     /**
+     * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. Such a line holds one card. `null` for a regular copy.
+     */
+    uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
+    /**
      * `true` when this line is published to the Marketplace with a price. `false` when it sits in your Collection.
      */
     forSale: boolean;
@@ -6426,6 +6531,10 @@ export namespace LineUpdateResponse {
      * Grading details when the card is graded. `null` for raw cards.
      */
     graded: Graded | null;
+    /**
+     * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. Such a line holds one card. `null` for a regular copy.
+     */
+    uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
     /**
      * `true` when this line is published to the Marketplace with a price. `false` when it sits in your Collection.
      */
@@ -6552,6 +6661,10 @@ export interface LineSetMediaResponse {
    * Grading details when the card is graded. `null` for raw cards.
    */
   graded: Graded | null;
+  /**
+   * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. Such a line holds one card. `null` for a regular copy.
+   */
+  uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
   /**
    * `true` when this line is published to the Marketplace with a price. `false` when it sits in your Collection.
    */

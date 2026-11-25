@@ -943,7 +943,7 @@ Each line names a catalogue product (see `GET /v1/products`), a finish, a langua
 
 Lines are processed one by one: valid lines land in `created`, rejected lines are reported in `errors` with the position they had in your request. The response status is 200 even when some — or all — lines were rejected, so check both fields.
 
-A new line without a `customId` that matches an existing line of yours exactly (same product, finish, condition, language, grading, and listing state) merges into it: the quantity is added to the existing line, and that line is returned in `created`.
+A new line that matches an existing line of yours (same product, finish, condition, language, grading, listing state, `comment`, and `location`, neither line carrying a `customId` or `uniqueKinds`) merges into it: the quantity is added to the existing line, and that line is returned in `created`. A line sent with `tags` merges only into a line with exactly those tags, and `tags: []` only into a line with no tags. A line sent without `tags` merges into a matching line whatever its tags, and that line keeps them.
 
 When any line carries a `listing`, your seller account must be active and every listing price must use your seller currency.
 
@@ -1051,7 +1051,7 @@ Quantity takes either `{"set": n}` (new total) or `{"adjust": n}` (signed change
 
 `count` applies the attribute changes to only part of the line. When `count` is lower than the line's quantity, the line splits: `count` cards take the changes and come back as `line`, the rest stays unchanged and comes back as `remainder`. The split-off part inherits the original line's `comment` unless you send a new one, and never inherits its `customId` — send `customId` to give the new part its own. `count` needs at least one attribute change and cannot be combined with `quantity`.
 
-If the changes make this line identical to another of your lines (same product, finish, condition, language, grading, and listing state, neither line carrying a `customId`), the two merge; `line` is the surviving line.
+If the changes make this line identical to another of your lines (same product, finish, condition, language, grading, listing state, `comment`, `location`, and `tags`, neither line carrying a `customId` or `uniqueKinds`), the two merge; `line` is the surviving line.
 
 Send an `Idempotency-Key` header to make retries safe: the same key returns the same response for 24 hours.
 
@@ -1140,9 +1140,9 @@ Each row describes one inventory line:
 
 Rows carrying a `customId` that matches one of your live lines update that line to the row's state — quantity, attributes, and listing. Fields the row leaves empty (`comment`, `notes`, `location`, `tags`, the listing pair) keep the line's current value. Rows whose `customId` matches nothing create a new line. `tags` and `location` are referenced by name and must already exist; importing does not create labels.
 
-Rows without a `customId` are additive: the quantity merges into an existing line with the same product, finish, condition, language, and grading, or creates one.
+Rows without a `customId` are additive: the quantity merges into an existing line with the same product, finish, condition, language, grading, listing price, `comment`, `location`, and `tags`, or creates one. A row that leaves `tags` empty merges into such a line whatever its tags, and the line keeps them. Lines with `uniqueKinds` are never merged into.
 
-With `mode: "replace"`, every live line the file does not mention is set to a quantity of zero after all rows are applied.
+With `mode: "replace"`, every live line the file does not mention is set to a quantity of zero after all rows are applied. Lines with `uniqueKinds` stay as they are: files can't describe them.
 
 A row that fails — unknown product, invalid value — does not stop the import. Failed rows are collected into a JSON error report, linked from the job's `errorReportUrl` when it completes.
 
@@ -1469,7 +1469,7 @@ Publishes an inventory line to the Marketplace at the given per-card price. The 
 
 By default the whole line is listed. Pass `quantity` to list only part of it: the listed cards move to their own line (returned as `line`), the rest stays in your Collection on the original line (returned as `remainder`). The split-off listed line inherits the original's `comment` but never its `customId`.
 
-If listing the whole line makes it identical to one of your existing listed lines (same product, finish, condition, language, grading, and price, neither line carrying a `customId`), the two merge; `line` is the surviving line.
+If listing the whole line makes it identical to one of your existing listed lines (same product, finish, condition, language, grading, price, `comment`, `location`, and `tags`, neither line carrying a `customId` or `uniqueKinds`), the two merge; `line` is the surviving line.
 
 Send an `Idempotency-Key` header to make retries safe: the same key returns the same response for 24 hours.
 
@@ -1490,7 +1490,7 @@ const listing = await client.listings.create('inventoryId', {
 
 Changes the per-card price of a listed inventory line. The price is the only thing this endpoint changes — how many cards are for sale is a property of the line itself: list more via `POST /v1/inventory/{inventoryId}/listing` or take some off sale via `DELETE /v1/inventory/{inventoryId}/listing`.
 
-If the new price makes this line identical to another of your listed lines (same product, finish, condition, language, grading, and price, neither line carrying a `customId`), the two merge; the response is the surviving line.
+If the new price makes this line identical to another of your listed lines (same product, finish, condition, language, grading, price, `comment`, `location`, and `tags`, neither line carrying a `customId` or `uniqueKinds`), the two merge; the response is the surviving line.
 
 Send an `Idempotency-Key` header to make retries safe: the same key returns the same response for 24 hours.
 
@@ -1513,7 +1513,7 @@ Takes a listed inventory line off the Marketplace. The cards stay in your invent
 
 By default the whole listing is cancelled and the response is the line's new state in your Collection. Pass `quantity` to take only part of it off sale: the delisted cards move back to your Collection, the rest stays for sale on this line, and the response is this line's new, reduced state.
 
-Delisted cards merge into an identical unlisted line of yours when one exists (same product, finish, condition, language, and grading, neither line carrying a `customId`). After a full delist that merges, the response is the surviving line.
+Delisted cards merge into an identical unlisted line of yours when one exists (same product, finish, condition, language, grading, `comment`, `location`, and `tags`, neither line carrying a `customId` or `uniqueKinds`). After a full delist that merges, the response is the surviving line.
 
 Requires the `listings:write` scope.
 
