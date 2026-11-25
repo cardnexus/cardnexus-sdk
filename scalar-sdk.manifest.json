@@ -1,7 +1,7 @@
 {
   "name": "CardNexusPublicApi",
   "slug": "cardNexusPublicApi",
-  "generatorVersion": "0.36.11",
+  "generatorVersion": "0.46.2",
   "servers": [
     "https://public-api.cardnexus.com/v1"
   ],
@@ -641,6 +641,7 @@
                       "finish": "Standard",
                       "condition": "NM",
                       "language": "en",
+                      "uniqueKinds": null,
                       "seller": {
                         "id": "65f3a2b1c8d4e9f7a6b5c4a1",
                         "username": "north_arena_tcg",
@@ -972,6 +973,47 @@
                                 {
                                   "kind": "primitive",
                                   "type": "string"
+                                },
+                                {
+                                  "kind": "null"
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "name": "uniqueKinds",
+                            "publicName": "uniqueKinds",
+                            "required": true,
+                            "deprecated": false,
+                            "type": {
+                              "kind": "union",
+                              "variants": [
+                                {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "enum",
+                                    "values": [
+                                      "signed",
+                                      "altered",
+                                      "misprint",
+                                      "artist-proof",
+                                      "serialized"
+                                    ],
+                                    "names": [
+                                      "Signed",
+                                      "Altered",
+                                      "Misprint",
+                                      "ArtistProof",
+                                      "Serialized"
+                                    ],
+                                    "deprecations": [
+                                      false,
+                                      false,
+                                      false,
+                                      false,
+                                      false
+                                    ]
+                                  }
                                 },
                                 {
                                   "kind": "null"
@@ -1560,6 +1602,7 @@
                       "finish": "Standard",
                       "condition": "NM",
                       "language": "en",
+                      "uniqueKinds": null,
                       "seller": {
                         "id": "65f3a2b1c8d4e9f7a6b5c4a1",
                         "username": "north_arena_tcg",
@@ -1891,6 +1934,47 @@
                                 {
                                   "kind": "primitive",
                                   "type": "string"
+                                },
+                                {
+                                  "kind": "null"
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "name": "uniqueKinds",
+                            "publicName": "uniqueKinds",
+                            "required": true,
+                            "deprecated": false,
+                            "type": {
+                              "kind": "union",
+                              "variants": [
+                                {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "enum",
+                                    "values": [
+                                      "signed",
+                                      "altered",
+                                      "misprint",
+                                      "artist-proof",
+                                      "serialized"
+                                    ],
+                                    "names": [
+                                      "Signed",
+                                      "Altered",
+                                      "Misprint",
+                                      "ArtistProof",
+                                      "Serialized"
+                                    ],
+                                    "deprecations": [
+                                      false,
+                                      false,
+                                      false,
+                                      false,
+                                      false
+                                    ]
+                                  }
                                 },
                                 {
                                   "kind": "null"
@@ -2877,6 +2961,7 @@
                       "finish": "Standard",
                       "condition": "NM",
                       "language": "en",
+                      "uniqueKinds": null,
                       "seller": {
                         "id": "65f3a2b1c8d4e9f7a6b5c4a1",
                         "username": "north_arena_tcg",
@@ -3208,6 +3293,47 @@
                                 {
                                   "kind": "primitive",
                                   "type": "string"
+                                },
+                                {
+                                  "kind": "null"
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "name": "uniqueKinds",
+                            "publicName": "uniqueKinds",
+                            "required": true,
+                            "deprecated": false,
+                            "type": {
+                              "kind": "union",
+                              "variants": [
+                                {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "enum",
+                                    "values": [
+                                      "signed",
+                                      "altered",
+                                      "misprint",
+                                      "artist-proof",
+                                      "serialized"
+                                    ],
+                                    "names": [
+                                      "Signed",
+                                      "Altered",
+                                      "Misprint",
+                                      "ArtistProof",
+                                      "Serialized"
+                                    ],
+                                    "deprecations": [
+                                      false,
+                                      false,
+                                      false,
+                                      false,
+                                      false
+                                    ]
+                                  }
                                 },
                                 {
                                   "kind": "null"
@@ -3733,6 +3859,7 @@
                       "finish": "Standard",
                       "condition": "NM",
                       "language": "en",
+                      "uniqueKinds": null,
                       "seller": {
                         "id": "65f3a2b1c8d4e9f7a6b5c4a1",
                         "username": "north_arena_tcg",
@@ -4064,6 +4191,47 @@
                                 {
                                   "kind": "primitive",
                                   "type": "string"
+                                },
+                                {
+                                  "kind": "null"
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "name": "uniqueKinds",
+                            "publicName": "uniqueKinds",
+                            "required": true,
+                            "deprecated": false,
+                            "type": {
+                              "kind": "union",
+                              "variants": [
+                                {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "enum",
+                                    "values": [
+                                      "signed",
+                                      "altered",
+                                      "misprint",
+                                      "artist-proof",
+                                      "serialized"
+                                    ],
+                                    "names": [
+                                      "Signed",
+                                      "Altered",
+                                      "Misprint",
+                                      "ArtistProof",
+                                      "Serialized"
+                                    ],
+                                    "deprecations": [
+                                      false,
+                                      false,
+                                      false,
+                                      false,
+                                      false
+                                    ]
+                                  }
                                 },
                                 {
                                   "kind": "null"
@@ -6228,319 +6396,6 @@
       }
     },
     {
-      "name": "forbidden_error_data",
-      "source": "forbidden_error_data",
-      "publicAliases": [],
-      "deprecated": false,
-      "extensions": {
-        "source": [
-          "examples"
-        ],
-        "examples": {
-          "required": [
-            "inventory:write"
-          ],
-          "granted": [
-            "account:read",
-            "inventory:read"
-          ]
-        }
-      },
-      "type": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "required",
-            "publicName": "required",
-            "required": true,
-            "deprecated": false,
-            "type": {
-              "kind": "array",
-              "items": {
-                "kind": "enum",
-                "values": [
-                  "*",
-                  "inventory:read",
-                  "inventory:write",
-                  "listings:read",
-                  "listings:write",
-                  "lists:read",
-                  "lists:write",
-                  "cart:read",
-                  "cart:write",
-                  "offers:read",
-                  "offers:write",
-                  "sales:read",
-                  "sales:write",
-                  "purchases:read",
-                  "purchases:write",
-                  "disputes:read",
-                  "disputes:write",
-                  "messaging:read",
-                  "messaging:write",
-                  "account:read",
-                  "account:write",
-                  "financial:read"
-                ],
-                "names": [
-                  "Asterisk",
-                  "InventoryRead",
-                  "InventoryWrite",
-                  "ListingsRead",
-                  "ListingsWrite",
-                  "ListsRead",
-                  "ListsWrite",
-                  "CartRead",
-                  "CartWrite",
-                  "OffersRead",
-                  "OffersWrite",
-                  "SalesRead",
-                  "SalesWrite",
-                  "PurchasesRead",
-                  "PurchasesWrite",
-                  "DisputesRead",
-                  "DisputesWrite",
-                  "MessagingRead",
-                  "MessagingWrite",
-                  "AccountRead",
-                  "AccountWrite",
-                  "FinancialRead"
-                ],
-                "deprecations": [
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false
-                ]
-              }
-            }
-          },
-          {
-            "name": "granted",
-            "publicName": "granted",
-            "required": true,
-            "deprecated": false,
-            "type": {
-              "kind": "array",
-              "items": {
-                "kind": "enum",
-                "values": [
-                  "*",
-                  "inventory:read",
-                  "inventory:write",
-                  "listings:read",
-                  "listings:write",
-                  "lists:read",
-                  "lists:write",
-                  "cart:read",
-                  "cart:write",
-                  "offers:read",
-                  "offers:write",
-                  "sales:read",
-                  "sales:write",
-                  "purchases:read",
-                  "purchases:write",
-                  "disputes:read",
-                  "disputes:write",
-                  "messaging:read",
-                  "messaging:write",
-                  "account:read",
-                  "account:write",
-                  "financial:read"
-                ],
-                "names": [
-                  "Asterisk",
-                  "InventoryRead",
-                  "InventoryWrite",
-                  "ListingsRead",
-                  "ListingsWrite",
-                  "ListsRead",
-                  "ListsWrite",
-                  "CartRead",
-                  "CartWrite",
-                  "OffersRead",
-                  "OffersWrite",
-                  "SalesRead",
-                  "SalesWrite",
-                  "PurchasesRead",
-                  "PurchasesWrite",
-                  "DisputesRead",
-                  "DisputesWrite",
-                  "MessagingRead",
-                  "MessagingWrite",
-                  "AccountRead",
-                  "AccountWrite",
-                  "FinancialRead"
-                ],
-                "deprecations": [
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false
-                ]
-              }
-            }
-          }
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "name": "rate_limit_error_data",
-      "source": "rate_limit_error_data",
-      "publicAliases": [],
-      "deprecated": false,
-      "extensions": {
-        "source": [
-          "examples"
-        ],
-        "examples": {
-          "bucket": "global",
-          "limit": 600,
-          "retryAfter": 27
-        }
-      },
-      "type": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "bucket",
-            "publicName": "bucket",
-            "required": true,
-            "deprecated": false,
-            "type": {
-              "kind": "primitive",
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "publicName": "limit",
-            "required": true,
-            "deprecated": false,
-            "type": {
-              "kind": "primitive",
-              "type": "number"
-            }
-          },
-          {
-            "name": "retryAfter",
-            "publicName": "retryAfter",
-            "required": true,
-            "deprecated": false,
-            "type": {
-              "kind": "primitive",
-              "type": "number"
-            }
-          }
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "name": "validation_error_data",
-      "source": "validation_error_data",
-      "publicAliases": [],
-      "deprecated": false,
-      "extensions": {
-        "source": [
-          "examples"
-        ],
-        "examples": {
-          "issues": [
-            {
-              "field": "productIds",
-              "message": "Too big: expected array to have <=200 items"
-            },
-            {
-              "field": "lines.3.quantity",
-              "message": "Too small: expected number to be >=1"
-            }
-          ]
-        }
-      },
-      "type": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "issues",
-            "publicName": "issues",
-            "required": false,
-            "deprecated": false,
-            "type": {
-              "kind": "array",
-              "items": {
-                "kind": "object",
-                "properties": [
-                  {
-                    "name": "field",
-                    "publicName": "field",
-                    "required": true,
-                    "deprecated": false,
-                    "type": {
-                      "kind": "primitive",
-                      "type": "string"
-                    }
-                  },
-                  {
-                    "name": "message",
-                    "publicName": "message",
-                    "required": true,
-                    "deprecated": false,
-                    "type": {
-                      "kind": "primitive",
-                      "type": "string"
-                    }
-                  }
-                ],
-                "additionalProperties": false
-              },
-              "validation": {
-                "maxItems": 100
-              }
-            }
-          }
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
       "name": "order_status",
       "source": "order_status",
       "publicAliases": [],
@@ -6652,6 +6507,7 @@
           "language": "en",
           "finish": "Standard",
           "graded": null,
+          "uniqueKinds": null,
           "quantity": 2,
           "unitPrice": {
             "amount": 4.5,
@@ -6783,6 +6639,47 @@
                 {
                   "kind": "ref",
                   "name": "graded"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "uniqueKinds",
+            "publicName": "uniqueKinds",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "array",
+                  "items": {
+                    "kind": "enum",
+                    "values": [
+                      "signed",
+                      "altered",
+                      "misprint",
+                      "artist-proof",
+                      "serialized"
+                    ],
+                    "names": [
+                      "Signed",
+                      "Altered",
+                      "Misprint",
+                      "ArtistProof",
+                      "Serialized"
+                    ],
+                    "deprecations": [
+                      false,
+                      false,
+                      false,
+                      false,
+                      false
+                    ]
+                  }
                 },
                 {
                   "kind": "null"
@@ -7978,6 +7875,7 @@
           "shippingService": "tracked",
           "webUrl": "https://cardnexus.com/orders/OR-ASNBC-1",
           "shipBy": null,
+          "shipsOn": null,
           "untrackedCloseAt": null,
           "currency": "EUR",
           "items": [
@@ -7989,6 +7887,7 @@
               "language": "en",
               "finish": "Standard",
               "graded": null,
+              "uniqueKinds": null,
               "quantity": 2,
               "unitPrice": {
                 "amount": 4.5,
@@ -8263,6 +8162,25 @@
             }
           },
           {
+            "name": "shipsOn",
+            "publicName": "shipsOn",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "primitive",
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
             "name": "untrackedCloseAt",
             "publicName": "untrackedCloseAt",
             "required": true,
@@ -8458,6 +8376,47 @@
                         {
                           "kind": "ref",
                           "name": "graded"
+                        },
+                        {
+                          "kind": "null"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "uniqueKinds",
+                    "publicName": "uniqueKinds",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "union",
+                      "variants": [
+                        {
+                          "kind": "array",
+                          "items": {
+                            "kind": "enum",
+                            "values": [
+                              "signed",
+                              "altered",
+                              "misprint",
+                              "artist-proof",
+                              "serialized"
+                            ],
+                            "names": [
+                              "Signed",
+                              "Altered",
+                              "Misprint",
+                              "ArtistProof",
+                              "Serialized"
+                            ],
+                            "deprecations": [
+                              false,
+                              false,
+                              false,
+                              false,
+                              false
+                            ]
+                          }
                         },
                         {
                           "kind": "null"
@@ -8796,7 +8755,8 @@
                         "create-shipping-label",
                         "cancel",
                         "accept-cancellation",
-                        "update-tracking"
+                        "update-tracking",
+                        "postpone-ship-date"
                       ],
                       "names": [
                         "MarkShipped",
@@ -8804,9 +8764,11 @@
                         "CreateShippingLabel",
                         "Cancel",
                         "AcceptCancellation",
-                        "UpdateTracking"
+                        "UpdateTracking",
+                        "PostponeShipDate"
                       ],
                       "deprecations": [
+                        false,
                         false,
                         false,
                         false,
@@ -8876,6 +8838,7 @@
           "shippingService": "tracked",
           "webUrl": "https://cardnexus.com/orders/OR-ASNBC-1",
           "shipBy": null,
+          "shipsOn": null,
           "untrackedCloseAt": null,
           "currency": "EUR",
           "items": [
@@ -8887,6 +8850,7 @@
               "language": "en",
               "finish": "Standard",
               "graded": null,
+              "uniqueKinds": null,
               "quantity": 2,
               "unitPrice": {
                 "amount": 4.5,
@@ -9172,6 +9136,25 @@
             }
           },
           {
+            "name": "shipsOn",
+            "publicName": "shipsOn",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "primitive",
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
             "name": "untrackedCloseAt",
             "publicName": "untrackedCloseAt",
             "required": true,
@@ -9367,6 +9350,47 @@
                         {
                           "kind": "ref",
                           "name": "graded"
+                        },
+                        {
+                          "kind": "null"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "uniqueKinds",
+                    "publicName": "uniqueKinds",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "union",
+                      "variants": [
+                        {
+                          "kind": "array",
+                          "items": {
+                            "kind": "enum",
+                            "values": [
+                              "signed",
+                              "altered",
+                              "misprint",
+                              "artist-proof",
+                              "serialized"
+                            ],
+                            "names": [
+                              "Signed",
+                              "Altered",
+                              "Misprint",
+                              "ArtistProof",
+                              "Serialized"
+                            ],
+                            "deprecations": [
+                              false,
+                              false,
+                              false,
+                              false,
+                              false
+                            ]
+                          }
                         },
                         {
                           "kind": "null"
@@ -9705,7 +9729,8 @@
                         "create-shipping-label",
                         "cancel",
                         "accept-cancellation",
-                        "update-tracking"
+                        "update-tracking",
+                        "postpone-ship-date"
                       ],
                       "names": [
                         "MarkShipped",
@@ -9713,9 +9738,11 @@
                         "CreateShippingLabel",
                         "Cancel",
                         "AcceptCancellation",
-                        "UpdateTracking"
+                        "UpdateTracking",
+                        "PostponeShipDate"
                       ],
                       "deprecations": [
+                        false,
                         false,
                         false,
                         false,
@@ -9857,6 +9884,7 @@
           "shippingService": "tracked",
           "webUrl": "https://cardnexus.com/orders/OR-ASNBC-1",
           "shipBy": null,
+          "shipsOn": null,
           "untrackedCloseAt": null,
           "currency": "EUR",
           "items": [
@@ -9868,6 +9896,7 @@
               "language": "en",
               "finish": "Standard",
               "graded": null,
+              "uniqueKinds": null,
               "quantity": 2,
               "unitPrice": {
                 "amount": 4.5,
@@ -10123,6 +10152,25 @@
             }
           },
           {
+            "name": "shipsOn",
+            "publicName": "shipsOn",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "primitive",
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
             "name": "untrackedCloseAt",
             "publicName": "untrackedCloseAt",
             "required": true,
@@ -10361,14 +10409,17 @@
                       "values": [
                         "mark-complete",
                         "request-cancellation",
-                        "extend-shipping-deadline"
+                        "extend-shipping-deadline",
+                        "cancel-postponed-preorder"
                       ],
                       "names": [
                         "MarkComplete",
                         "RequestCancellation",
-                        "ExtendShippingDeadline"
+                        "ExtendShippingDeadline",
+                        "CancelPostponedPreorder"
                       ],
                       "deprecations": [
+                        false,
                         false,
                         false,
                         false
@@ -10435,6 +10486,7 @@
           "shippingService": "tracked",
           "webUrl": "https://cardnexus.com/orders/OR-ASNBC-1",
           "shipBy": null,
+          "shipsOn": null,
           "untrackedCloseAt": null,
           "currency": "EUR",
           "items": [
@@ -10446,6 +10498,7 @@
               "language": "en",
               "finish": "Standard",
               "graded": null,
+              "uniqueKinds": null,
               "quantity": 2,
               "unitPrice": {
                 "amount": 4.5,
@@ -10723,6 +10776,25 @@
             }
           },
           {
+            "name": "shipsOn",
+            "publicName": "shipsOn",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "primitive",
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
             "name": "untrackedCloseAt",
             "publicName": "untrackedCloseAt",
             "required": true,
@@ -10961,14 +11033,17 @@
                       "values": [
                         "mark-complete",
                         "request-cancellation",
-                        "extend-shipping-deadline"
+                        "extend-shipping-deadline",
+                        "cancel-postponed-preorder"
                       ],
                       "names": [
                         "MarkComplete",
                         "RequestCancellation",
-                        "ExtendShippingDeadline"
+                        "ExtendShippingDeadline",
+                        "CancelPostponedPreorder"
                       ],
                       "deprecations": [
+                        false,
                         false,
                         false,
                         false
@@ -11278,6 +11353,7 @@
           "language": "en",
           "finish": "Standard",
           "graded": null,
+          "uniqueKinds": null,
           "comment": "Pack fresh, straight into a toploader",
           "photos": [
             {
@@ -11429,6 +11505,47 @@
                 {
                   "kind": "ref",
                   "name": "graded"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "uniqueKinds",
+            "publicName": "uniqueKinds",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "array",
+                  "items": {
+                    "kind": "enum",
+                    "values": [
+                      "signed",
+                      "altered",
+                      "misprint",
+                      "artist-proof",
+                      "serialized"
+                    ],
+                    "names": [
+                      "Signed",
+                      "Altered",
+                      "Misprint",
+                      "ArtistProof",
+                      "Serialized"
+                    ],
+                    "deprecations": [
+                      false,
+                      false,
+                      false,
+                      false,
+                      false
+                    ]
+                  }
                 },
                 {
                   "kind": "null"
@@ -11846,6 +11963,7 @@
                   "language": "en",
                   "finish": "Standard",
                   "graded": null,
+                  "uniqueKinds": null,
                   "quantity": 2,
                   "unitPrice": {
                     "amount": 4.5,
@@ -11855,7 +11973,17 @@
                     "amount": 9,
                     "currency": "EUR"
                   },
-                  "addedAt": "2026-07-12T15:02:00.000Z"
+                  "addedAt": "2026-07-12T15:02:00.000Z",
+                  "shipsOn": null
+                }
+              ],
+              "shipments": [
+                {
+                  "shipsOn": null,
+                  "shipping": {
+                    "amount": 3.5,
+                    "currency": "EUR"
+                  }
                 }
               ]
             }
@@ -11943,6 +12071,7 @@
           "language": "en",
           "finish": "Standard",
           "graded": null,
+          "uniqueKinds": null,
           "quantity": 2,
           "unitPrice": {
             "amount": 4.5,
@@ -11952,7 +12081,8 @@
             "amount": 9,
             "currency": "EUR"
           },
-          "addedAt": "2026-07-12T15:02:00.000Z"
+          "addedAt": "2026-07-12T15:02:00.000Z",
+          "shipsOn": null
         }
       },
       "type": {
@@ -12107,6 +12237,47 @@
             }
           },
           {
+            "name": "uniqueKinds",
+            "publicName": "uniqueKinds",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "array",
+                  "items": {
+                    "kind": "enum",
+                    "values": [
+                      "signed",
+                      "altered",
+                      "misprint",
+                      "artist-proof",
+                      "serialized"
+                    ],
+                    "names": [
+                      "Signed",
+                      "Altered",
+                      "Misprint",
+                      "ArtistProof",
+                      "Serialized"
+                    ],
+                    "deprecations": [
+                      false,
+                      false,
+                      false,
+                      false,
+                      false
+                    ]
+                  }
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
+          },
+          {
             "name": "quantity",
             "publicName": "quantity",
             "required": true,
@@ -12174,6 +12345,25 @@
               "type": "string",
               "format": "date-time"
             }
+          },
+          {
+            "name": "shipsOn",
+            "publicName": "shipsOn",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "primitive",
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "kind": "null"
+                }
+              ]
+            }
           }
         ],
         "additionalProperties": false
@@ -12218,6 +12408,7 @@
               "language": "en",
               "finish": "Standard",
               "graded": null,
+              "uniqueKinds": null,
               "quantity": 2,
               "unitPrice": {
                 "amount": 4.5,
@@ -12227,7 +12418,17 @@
                 "amount": 9,
                 "currency": "EUR"
               },
-              "addedAt": "2026-07-12T15:02:00.000Z"
+              "addedAt": "2026-07-12T15:02:00.000Z",
+              "shipsOn": null
+            }
+          ],
+          "shipments": [
+            {
+              "shipsOn": null,
+              "shipping": {
+                "amount": 3.5,
+                "currency": "EUR"
+              }
             }
           ]
         }
@@ -12293,6 +12494,67 @@
               "items": {
                 "kind": "ref",
                 "name": "cart_item"
+              }
+            }
+          },
+          {
+            "name": "shipments",
+            "publicName": "shipments",
+            "required": true,
+            "deprecated": false,
+            "type": {
+              "kind": "array",
+              "items": {
+                "kind": "object",
+                "properties": [
+                  {
+                    "name": "shipsOn",
+                    "publicName": "shipsOn",
+                    "required": true,
+                    "deprecated": false,
+                    "type": {
+                      "kind": "union",
+                      "variants": [
+                        {
+                          "kind": "primitive",
+                          "type": "string",
+                          "format": "date"
+                        },
+                        {
+                          "kind": "null"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "shipping",
+                    "publicName": "shipping",
+                    "required": true,
+                    "deprecated": false,
+                    "extensions": {
+                      "source": [
+                        "examples"
+                      ],
+                      "examples": {
+                        "amount": 14.99,
+                        "currency": "USD"
+                      }
+                    },
+                    "type": {
+                      "kind": "union",
+                      "variants": [
+                        {
+                          "kind": "ref",
+                          "name": "money"
+                        },
+                        {
+                          "kind": "null"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -26984,6 +27246,13 @@
       "source": "webhook",
       "method": "POST",
       "path": "order.status.changed"
+    },
+    {
+      "event": "order.ship_by.changed",
+      "name": "OrderShipByChanged",
+      "source": "webhook",
+      "method": "POST",
+      "path": "order.ship_by.changed"
     },
     {
       "event": "message.received",

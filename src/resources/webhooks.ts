@@ -5,10 +5,7 @@ import { getRequiredHeader, type HeadersLike } from '../internal/headers';
 import { verifyWebhookSignature } from '../internal/webhook-verify';
 
 export class Webhooks extends APIResource {
-  unwrap(
-    body: string,
-    { headers, key }: { headers: Record<string, string>; key?: string },
-  ): ParsedWebhookEvent {
+  unwrap(body: string, { headers, key }: { headers: HeadersLike; key?: string }): ParsedWebhookEvent {
     const keyStr: string | null = key === undefined ? this._client.webhookSecret : key;
     if (keyStr === null) throw new Error('Webhook key must not be null in order to unwrap');
     verifyWebhookSignature(body, headers, keyStr);
@@ -30,15 +27,10 @@ export class Webhooks extends APIResource {
       throw new Error(
         'The webhook secret must either be set using the env var, CARDNEXUS_WEBHOOK_SECRET, on the client class, or passed to this function',
       );
-    verifyWebhookSignature(
-      body,
-      {
-        'webhook-id': getRequiredHeader(headers, 'webhook-id'),
-        'webhook-timestamp': getRequiredHeader(headers, 'webhook-timestamp'),
-        'webhook-signature': getRequiredHeader(headers, 'webhook-signature'),
-      },
-      keyStr,
-    );
+    getRequiredHeader(headers, 'webhook-id');
+    getRequiredHeader(headers, 'webhook-timestamp');
+    getRequiredHeader(headers, 'webhook-signature');
+    verifyWebhookSignature(body, headers, keyStr);
   }
 
   /**
@@ -286,6 +278,16 @@ export namespace OrderCreatedWebhookEvent {
      * `true` when CardNexus manages shipping on this order: the buyer paid CardNexus for the shipping, and the seller ships with a label generated on CardNexus. `false` when the seller ships the order themselves. Set when the order is placed: a later change to the seller's shipping setting only applies to new orders.
      */
     shippingManagedByCardNexus: boolean;
+    /**
+     * The ship-by deadline. Once it passes with the order still `pending_shipment`, the order is cancelled automatically. `order.ship_by.changed` fires when it moves.
+     * @format date-time
+     */
+    shipBy: string | null;
+    /**
+     * Pre-orders only: the day the seller ships from, as `YYYY-MM-DD`; `shipBy` counts from it. `null` on an order that ships now.
+     * @format date
+     */
+    shipsOn: string | null;
     /**
      * When the order was placed.
      * @format date-time

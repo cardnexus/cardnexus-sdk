@@ -44,9 +44,9 @@ export class BulkOperations extends APIResource {
    *
    * Rows carrying a `customId` that matches one of your live lines update that line to the row's state — quantity, attributes, and listing. Fields the row leaves empty (`comment`, `notes`, `location`, `tags`, the listing pair) keep the line's current value. Rows whose `customId` matches nothing create a new line. `tags` and `location` are referenced by name and must already exist; importing does not create labels.
    *
-   * Rows without a `customId` are additive: the quantity merges into an existing line with the same product, finish, condition, language, and grading, or creates one.
+   * Rows without a `customId` are additive: the quantity merges into an existing line with the same product, finish, condition, language, grading, listing price, `comment`, `location`, and `tags`, or creates one. A row that leaves `tags` empty merges into such a line whatever its tags, and the line keeps them. Lines with `uniqueKinds` are never merged into.
    *
-   * With `mode: "replace"`, every live line the file does not mention is set to a quantity of zero after all rows are applied.
+   * With `mode: "replace"`, every live line the file does not mention is set to a quantity of zero after all rows are applied. Lines with `uniqueKinds` stay as they are: files can't describe them.
    *
    * A row that fails — unknown product, invalid value — does not stop the import. Failed rows are collected into a JSON error report, linked from the job's `errorReportUrl` when it completes.
    *
@@ -276,7 +276,7 @@ export interface BulkOperationImportParams {
    */
   file: string;
   /**
-   * `upsert` (the default) applies the file's rows on top of your current inventory. `replace` additionally sets every line the file does not mention to a quantity of zero — the file becomes your full inventory.
+   * `upsert` (the default) applies the file's rows on top of your current inventory. `replace` additionally sets every line the file does not mention to a quantity of zero — the file becomes your full inventory, apart from lines with `uniqueKinds`, which files can't describe and which stay as they are.
    * @default upsert
    */
   mode?: 'upsert' | 'replace';
@@ -704,7 +704,7 @@ export interface BulkOperationExportParams {
    */
   format: 'json' | 'csv';
   /**
-   * Body param: Export only the lines matching these filters — the same filters `POST /v1/inventory/search` accepts. Omit to export your whole inventory.
+   * Body param: Export only the lines matching these filters — the same filters `POST /v1/inventory/search` accepts. Omit to export your whole inventory. Lines with `uniqueKinds` are left out: files can't describe them.
    */
   filters?: BulkOperationExportParams.Filters;
 }
@@ -1332,6 +1332,9 @@ export namespace BulkOperationExportParams {
         color?: Filters.Color;
         colorIdentity?: Filters.ColorIdentity;
         rarity?: Filters.Rarity;
+        type?: Filters.Type;
+        manaValue?: Filters.ManaValue | Filters.ManaValue2;
+        leadership?: Filters.Leadership;
         languages?: Filters.Languages;
       }
 
@@ -1363,6 +1366,59 @@ export namespace BulkOperationExportParams {
         export interface Rarity {
           op: 'and' | 'or';
           values: Array<'bonus' | 'common' | 'uncommon' | 'rare' | 'mythic' | 'special'>;
+        }
+
+        export interface Type {
+          op: 'and' | 'or';
+          values: Array<
+            | 'Creature'
+            | 'Planeswalker'
+            | 'Battle'
+            | 'Artifact'
+            | 'Enchantment'
+            | 'Instant'
+            | 'Sorcery'
+            | 'Land'
+            | 'Other'
+          >;
+        }
+
+        export interface ManaValue {
+          op: '=' | '>' | '<';
+          value: number;
+        }
+
+        export interface ManaValue2 {
+          min: number;
+          max: number;
+        }
+
+        export interface Leadership {
+          op: 'and' | 'or';
+          values: Array<
+            | 'alchemy'
+            | 'brawl'
+            | 'commander'
+            | 'duel'
+            | 'future'
+            | 'gladiator'
+            | 'historic'
+            | 'legacy'
+            | 'modern'
+            | 'oathbreaker'
+            | 'oldschool'
+            | 'pauper'
+            | 'paupercommander'
+            | 'penny'
+            | 'pioneer'
+            | 'predh'
+            | 'premodern'
+            | 'standard'
+            | 'standardbrawl'
+            | 'competitivebrawl'
+            | 'timeless'
+            | 'vintage'
+          >;
         }
 
         export interface Languages {
@@ -3167,6 +3223,7 @@ export namespace BulkOperationExportParams {
             | 'Anivia'
             | 'Annie'
             | 'Aphelios'
+            | 'Ashe'
             | 'Azir'
             | 'Bard'
             | 'Blitzcrank'
@@ -3176,17 +3233,23 @@ export namespace BulkOperationExportParams {
             | 'Dr. Mundo'
             | 'Draven'
             | 'Ekko'
+            | 'Evelynn'
             | 'Ezreal'
             | 'Fiora'
             | 'Fizz'
             | 'Gangplank'
             | 'Garen'
+            | 'Graves'
             | 'Heimerdinger'
+            | 'Hwei'
             | 'Illaoi'
             | 'Irelia'
+            | 'Ivern'
             | 'Janna'
+            | 'Jarvan IV'
             | 'Jax'
             | 'Jayce'
+            | 'Jhin'
             | 'Jinx'
             | "Kai'Sa"
             | 'Karma'
@@ -3196,31 +3259,46 @@ export namespace BulkOperationExportParams {
             | 'Kennen'
             | "Kha'Zix"
             | "Kog'Maw"
+            | "K'Sante"
+            | 'LeBlanc'
             | 'Lee Sin'
             | 'Leona'
+            | 'Lillia'
             | 'Lucian'
+            | 'Lulu'
             | 'Lux'
             | 'Malzahar'
             | 'Master Yi'
             | 'Mel'
             | 'Miss Fortune'
+            | 'Mordekaiser'
             | 'Morgana'
+            | 'Nami'
             | 'Nasus'
+            | 'Neeko'
+            | 'Nidalee'
+            | 'Nilah'
             | 'Nocturne'
+            | 'Orianna'
             | 'Ornn'
+            | 'Poppy'
+            | 'Pyke'
             | 'Qiyana'
             | "Rek'Sai"
+            | 'Rell'
             | 'Renata Glasc'
             | 'Renekton'
             | 'Rengar'
             | 'Riven'
             | 'Rumble'
+            | 'Seraphine'
             | 'Sett'
             | 'Shen'
             | 'Sivir'
             | 'Sona'
             | 'Soraka'
             | 'Swain'
+            | 'Syndra'
             | 'Taric'
             | 'Teemo'
             | 'Tryndamere'
@@ -3232,10 +3310,13 @@ export namespace BulkOperationExportParams {
             | 'Viktor'
             | 'Volibear'
             | 'Warwick'
+            | 'Xerath'
             | 'Xin Zhao'
             | 'Yasuo'
             | 'Yone'
+            | 'Yuumi'
             | 'Zed'
+            | 'Ziggs'
             | 'Bandle City'
             | 'Bilgewater'
             | 'Demacia'
@@ -3251,13 +3332,16 @@ export namespace BulkOperationExportParams {
             | 'The Void'
             | 'Zaun'
             | 'Bird'
+            | 'Bomb'
             | 'Cat'
             | 'Demon'
+            | 'Device'
             | 'Dog'
             | 'Dragon'
             | 'Elite'
             | 'Equipment'
             | 'Fae'
+            | 'Kathkan'
             | 'Mech'
             | 'Mystic'
             | 'Ninja'
@@ -5877,7 +5961,7 @@ export namespace BulkOperationUpdateResponse {
      */
     status: 'error';
     /**
-     * Why the item was rejected. `NOT_FOUND`: no live line of yours matches the item's `inventoryId` or `customId`. `INSUFFICIENT_QUANTITY`: the quantity change would leave zero or fewer cards. `INVALID_COUNT`: `count` is higher than the line's quantity. `INVALID_ITEM`: the item's fields cannot be applied together, or another item in the call already changes the same line (the reason is in `data`). `INVALID_FINISH`: the product does not exist in this finish. `INVALID_LANGUAGE`: the product does not exist in this language. `LOCATION_NOT_FOUND`: the `location` name matches none of your locations. `TAG_NOT_FOUND`: a `tags` name matches none of your tags. `SELLER_ACCOUNT_NOT_ACTIVE`: the item sets a `listing` on a line that is not for sale, and your seller account is suspended or banned. `CURRENCY_MISMATCH`: the `listing` price is not in your seller currency (`data` carries the `provided` and `expected` currencies).
+     * Why the item was rejected. `NOT_FOUND`: no live line of yours matches the item's `inventoryId` or `customId`. `INSUFFICIENT_QUANTITY`: the quantity change would leave zero or fewer cards. `INVALID_COUNT`: `count` is higher than the line's quantity. `INVALID_ITEM`: the item's fields cannot be applied together, or another item in the call already changes the same line (the reason is in `data`). `INVALID_FINISH`: the product does not exist in this finish. `INVALID_LANGUAGE`: the product does not exist in this language. `LOCATION_NOT_FOUND`: the `location` name matches none of your locations. `TAG_NOT_FOUND`: a `tags` name matches none of your tags. `SELLER_ACCOUNT_NOT_ACTIVE`: the item sets a `listing` on a line that is not for sale, and your seller account is suspended or banned. `CURRENCY_MISMATCH`: the `listing` price is not in your seller currency (`data` carries the `provided` and `expected` currencies). `UNRELEASED_SEALED_PRO_ONLY`: the item sets a `listing` on a line that is not for sale and you are not a pro seller: only pro sellers list a sealed product whose set is not released yet; it sells as a pre-order shipping on the release date. Changing the price or quantity of a line already for sale is never refused.
      */
     code:
       | 'NOT_FOUND'
@@ -5889,7 +5973,8 @@ export namespace BulkOperationUpdateResponse {
       | 'LOCATION_NOT_FOUND'
       | 'TAG_NOT_FOUND'
       | 'SELLER_ACCOUNT_NOT_ACTIVE'
-      | 'CURRENCY_MISMATCH';
+      | 'CURRENCY_MISMATCH'
+      | 'UNRELEASED_SEALED_PRO_ONLY';
     /**
      * The values that caused the rejection, e.g. the line's available quantity.
      */

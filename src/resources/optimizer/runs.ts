@@ -130,7 +130,7 @@ export interface Cart {
 }
 
 /**
- * Your cart's items from one seller. Each seller's items ship together as one shipment (a parcel, or an untracked letter for a small eligible order); the seller's shipping charge is under `seller.shipping`.
+ * Your cart's items from one seller. The items that ship now ship together as one shipment (a parcel, or an untracked letter for a small eligible order), and pre-orders ship separately, one shipment per ship date, each charged its own shipping (see `shipments`). `seller.shipping` is the seller's total shipping charge.
  */
 export interface CartSellerGroup {
   /**
@@ -145,6 +145,24 @@ export interface CartSellerGroup {
    * The items you are buying from this seller.
    */
   items: Array<CartItem>;
+  /**
+   * The seller's parcels: the items that ship now first, then one per pre-order ship date. Empty when no delivery country is set.
+   */
+  shipments: Array<CartSellerGroup.Shipment>;
+}
+
+export namespace CartSellerGroup {
+  export interface Shipment {
+    /**
+     * The day this parcel ships from (`YYYY-MM-DD`) for pre-orders; `null` for the items that ship now.
+     * @format date
+     */
+    shipsOn: string | null;
+    /**
+     * The parcel's shipping charge. `null` when no delivery country is set.
+     */
+    shipping: AccountAPI.Money | null;
+  }
 }
 
 /**
@@ -190,6 +208,10 @@ export interface CartItem {
    */
   graded: LinesAPI.Graded | null;
   /**
+   * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. `null` for a regular copy.
+   */
+  uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
+  /**
    * How many units of the listing are in your cart.
    * @minimum -9007199254740991
    * @maximum 9007199254740991
@@ -208,6 +230,11 @@ export interface CartItem {
    * @format date-time
    */
   addedAt: string;
+  /**
+   * Pre-orders only: the day the seller ships the item from (`YYYY-MM-DD`), the release date of its set. A pro seller's sealed product of a set not released yet sells as a pre-order. `null` when the item ships now.
+   * @format date
+   */
+  shipsOn: string | null;
 }
 
 export interface RunCreateParams {

@@ -43,7 +43,7 @@ export class Listings extends APIResource {
    *
    * By default the whole line is listed. Pass `quantity` to list only part of it: the listed cards move to their own line (returned as `line`), the rest stays in your Collection on the original line (returned as `remainder`). The split-off listed line inherits the original's `comment` but never its `customId`.
    *
-   * If listing the whole line makes it identical to one of your existing listed lines (same product, finish, condition, language, grading, and price, neither line carrying a `customId`), the two merge; `line` is the surviving line.
+   * If listing the whole line makes it identical to one of your existing listed lines (same product, finish, condition, language, grading, price, `comment`, `location`, and `tags`, neither line carrying a `customId` or `uniqueKinds`), the two merge; `line` is the surviving line.
    *
    * Send an `Idempotency-Key` header to make retries safe: the same key returns the same response for 24 hours.
    *
@@ -72,7 +72,7 @@ export class Listings extends APIResource {
   /**
    * Changes the per-card price of a listed inventory line. The price is the only thing this endpoint changes — how many cards are for sale is a property of the line itself: list more via `POST /v1/inventory/{inventoryId}/listing` or take some off sale via `DELETE /v1/inventory/{inventoryId}/listing`.
    *
-   * If the new price makes this line identical to another of your listed lines (same product, finish, condition, language, grading, and price, neither line carrying a `customId`), the two merge; the response is the surviving line.
+   * If the new price makes this line identical to another of your listed lines (same product, finish, condition, language, grading, price, `comment`, `location`, and `tags`, neither line carrying a `customId` or `uniqueKinds`), the two merge; the response is the surviving line.
    *
    * Send an `Idempotency-Key` header to make retries safe: the same key returns the same response for 24 hours.
    *
@@ -103,7 +103,7 @@ export class Listings extends APIResource {
    *
    * By default the whole listing is cancelled and the response is the line's new state in your Collection. Pass `quantity` to take only part of it off sale: the delisted cards move back to your Collection, the rest stays for sale on this line, and the response is this line's new, reduced state.
    *
-   * Delisted cards merge into an identical unlisted line of yours when one exists (same product, finish, condition, language, and grading, neither line carrying a `customId`). After a full delist that merges, the response is the surviving line.
+   * Delisted cards merge into an identical unlisted line of yours when one exists (same product, finish, condition, language, grading, `comment`, `location`, and `tags`, neither line carrying a `customId` or `uniqueKinds`). After a full delist that merges, the response is the surviving line.
    *
    * Requires the `listings:write` scope.
    *
@@ -290,6 +290,10 @@ export namespace ListingListResponse {
      */
     graded: LinesAPI.Graded | null;
     /**
+     * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. Such a line holds one card. `null` for a regular copy.
+     */
+    uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
+    /**
      * `true` when this line is published to the Marketplace with a price. `false` when it sits in your Collection.
      */
     forSale: boolean;
@@ -437,6 +441,10 @@ export namespace ListingCreateResponse {
      */
     graded: LinesAPI.Graded | null;
     /**
+     * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. Such a line holds one card. `null` for a regular copy.
+     */
+    uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
+    /**
      * `true` when this line is published to the Marketplace with a price. `false` when it sits in your Collection.
      */
     forSale: boolean;
@@ -543,6 +551,10 @@ export namespace ListingCreateResponse {
      * Grading details when the card is graded. `null` for raw cards.
      */
     graded: LinesAPI.Graded | null;
+    /**
+     * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. Such a line holds one card. `null` for a regular copy.
+     */
+    uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
     /**
      * `true` when this line is published to the Marketplace with a price. `false` when it sits in your Collection.
      */
@@ -669,6 +681,10 @@ export interface ListingUpdateResponse {
    */
   graded: LinesAPI.Graded | null;
   /**
+   * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. Such a line holds one card. `null` for a regular copy.
+   */
+  uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
+  /**
    * `true` when this line is published to the Marketplace with a price. `false` when it sits in your Collection.
    */
   forSale: boolean;
@@ -784,6 +800,10 @@ export interface ListingDeleteResponse {
    * Grading details when the card is graded. `null` for raw cards.
    */
   graded: LinesAPI.Graded | null;
+  /**
+   * What makes this copy one of a kind: signed, altered, misprint, artist proof or serialized. Such a line holds one card. `null` for a regular copy.
+   */
+  uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
   /**
    * `true` when this line is published to the Marketplace with a price. `false` when it sits in your Collection.
    */
