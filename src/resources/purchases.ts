@@ -118,6 +118,11 @@ export interface Purchase {
    */
   shipBy: OffersAPI.DateString | null;
   /**
+   * Pre-orders only: the day the seller ships from, as `YYYY-MM-DD`. A pro seller's listing of a sealed product whose set is not released yet sells as a pre-order shipping on the set's release date, and `shipBy` counts from that day. The seller or CardNexus may move it later. `null` on an order that ships now.
+   * @format date
+   */
+  shipsOn: string | null;
+  /**
    * When this untracked order closes on its own: it completes and the seller is paid, unless a dispute is opened before then. `null` on tracked orders, and until an untracked order ships.
    * @format date-time
    */
@@ -169,7 +174,7 @@ export namespace Purchase {
     /**
      * The action. Each id names one operation on this resource.
      */
-    id: 'mark-complete' | 'request-cancellation' | 'extend-shipping-deadline';
+    id: 'mark-complete' | 'request-cancellation' | 'extend-shipping-deadline' | 'cancel-postponed-preorder';
     /**
      * The HTTP method of the operation.
      */
@@ -231,6 +236,11 @@ export interface PurchaseDetail {
    * @format date-time
    */
   shipBy: OffersAPI.DateString | null;
+  /**
+   * Pre-orders only: the day the seller ships from, as `YYYY-MM-DD`. A pro seller's listing of a sealed product whose set is not released yet sells as a pre-order shipping on the set's release date, and `shipBy` counts from that day. The seller or CardNexus may move it later. `null` on an order that ships now.
+   * @format date
+   */
+  shipsOn: string | null;
   /**
    * When this untracked order closes on its own: it completes and the seller is paid, unless a dispute is opened before then. `null` on tracked orders, and until an untracked order ships.
    * @format date-time
@@ -299,7 +309,7 @@ export namespace PurchaseDetail {
     /**
      * The action. Each id names one operation on this resource.
      */
-    id: 'mark-complete' | 'request-cancellation' | 'extend-shipping-deadline';
+    id: 'mark-complete' | 'request-cancellation' | 'extend-shipping-deadline' | 'cancel-postponed-preorder';
     /**
      * The HTTP method of the operation.
      */
@@ -345,6 +355,10 @@ export interface OrderLineItem {
    * Grading details when the item is graded. `null` for raw cards and sealed products.
    */
   graded: LinesAPI.Graded | null;
+  /**
+   * What made this copy one of a kind: signed, altered, misprint, artist proof or serialized. `null` for a regular copy.
+   */
+  uniqueKinds: Array<'signed' | 'altered' | 'misprint' | 'artist-proof' | 'serialized'> | null;
   /**
    * How many units of this item were sold.
    * @minimum -9007199254740991

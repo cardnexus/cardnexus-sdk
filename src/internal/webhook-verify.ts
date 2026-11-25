@@ -1,7 +1,14 @@
 // File generated from our OpenAPI spec by Scalar. See README.md for details.
 
+import { CardNexusPublicAPIError } from '../core/error';
+import { type HeadersLike, type HeadersProtocol, getHeader, getHeaderValues } from './headers';
+import { type NodeCrypto, hmacSha256Parts, nodeCrypto } from './hmac';
 import { toBase64 } from './utils/base64';
 import { encodeUTF8 } from './utils/bytes';
+
+// The digest and MAC moved to `./hmac` so the signed-URL signer shares them; re-exported so a deep
+// import of either from this module keeps working.
+export { hmacSha256, sha256 } from './hmac';
 
 /*
  * Standard Webhooks signature verification, with no crypto dependency.
@@ -9,8 +16,8 @@ import { encodeUTF8 } from './utils/bytes';
  * `unwrap` is synchronous, which rules out Web Crypto (`crypto.subtle` only returns promises). Where the
  * runtime hands out `node:crypto` synchronously through `process.getBuiltinModule` (Node and Bun, for
  * example), its native HMAC and constant-time comparison are used; everywhere else (browsers, most edge
- * runtimes) the SHA-256, HMAC and comparison below run instead. Only the digest and the MAC are here,
- * nothing that encrypts.
+ * runtimes) the SHA-256 and HMAC in `./hmac` and the comparison below run instead. Only the digest and
+ * the MAC are involved, nothing that encrypts.
  */
 
 /** The optional prefix on a Standard Webhooks secret; the rest of the secret is base64. */
@@ -31,6 +38,11 @@ export type WebhookSignatureScheme = {
   readonly toleranceSeconds?: number;
   /** The MAC the API signs with. Only `hmac-sha256` is implemented. */
   readonly algorithm?: string;
+  /**
+   * The helper's decode-only method as generated, named when `algorithm` is one this verifier cannot
+   * check; absent when the SDK has none.
+   */
+  readonly decodeOnly?: string;
 };
 
 /** The Standard Webhooks defaults. */
@@ -43,15 +55,412 @@ const DEFAULT_SCHEME = {
 } as const;
 
 /**
- * Thrown when a delivery fails verification: a missing header, a timestamp outside the window, or no
- * matching signature. The name and messages are stable, so callers can match on them.
+ * Thrown when a delivery fails verification: a missing header, a timestamp outside the window, no
+ * matching signature, or a signature algorithm the SDK cannot check. The name and messages are
+ * stable, so callers can match on them.
+ *
+ * SDKs that verified through the `standardwebhooks` package let that library's class of the same name
+ * escape, so callers wrote `err.name === 'WebhookVerificationError'` or `err instanceof
+ * WebhookVerificationError`. The name is kept, and the package root exports this class, so both checks
+ * keep working once the import points at the SDK. It extends the SDK's base error, so
+ * `instanceof CardNexusPublicAPIError` covers a refused delivery too. Where the application has
+ * loaded `standardwebhooks` itself, an `instanceof` against that library's class matches a refusal as
+ * well (see {@link bridgeLibraryError}), and {@link isWebhookVerificationError} matches both classes
+ * wherever that bridge cannot reach. A helper configured with an algorithm the verifier does not
+ * implement throws it on every call; a missing or malformed secret, and a header the companions find
+ * missing, still throw plain `Error`s.
  */
-export class WebhookVerificationError extends Error {
+export class WebhookVerificationError extends CardNexusPublicAPIError {
+  /**
+   * Type-only, never set: a private member makes the class nominal, so a plain `Error` is not assignable
+   * to it. Without it the class can have exactly `Error`'s members, and a false answer from
+   * {@link isWebhookVerificationError} would narrow an `Error`-typed value to `never`.
+   */
+  declare private readonly webhookVerificationErrorBrand: true;
+
   constructor(message: string) {
     super(message);
     this.name = 'WebhookVerificationError';
+    bridgeLibraryError();
   }
 }
+
+/** The package whose `WebhookVerificationError` a handler may import in place of the SDK's. */
+const LIBRARY_ID = 'standardwebhooks';
+
+/**
+ * Carried by the prototype of every SDK refusal class that bridges, and read by the wrapper the bridge
+ * installs. A registry symbol, so the ESM and CommonJS builds, other SDKs and a re-evaluated module all
+ * agree on it. Only the copy that installed the wrapper stays reachable through it; later copies and
+ * reloads add nothing.
+ */
+const REFUSAL_BRAND = Symbol.for('scalar-sdk.webhook-verification-error.refusal');
+
+/** Set on a library class once a wrapper is installed, so no later copy or reload stacks another. */
+const BRIDGED_MARK = Symbol.for('scalar-sdk.webhook-verification-error.bridged');
+
+Object.defineProperty(WebhookVerificationError.prototype, REFUSAL_BRAND, { value: true });
+
+/**
+ * The slice of `node:module`'s `require` the bridge uses: resolution, the shared module cache, and
+ * loading a builtin (never a file) where the runtime has no `process.getBuiltinModule`.
+ */
+type NodeRequire = {
+  (id: string): unknown;
+  readonly resolve: (id: string, options?: { readonly paths?: readonly string[] }) => string;
+  readonly cache: Readonly<Record<string, { readonly exports?: unknown } | undefined>>;
+};
+
+/** The slice of `node:module` the bridge uses. */
+type NodeModule = { readonly createRequire?: (path: string) => NodeRequire };
+
+/**
+ * The slice of this file's own CommonJS `module` the bridge reads. Under Jest, `require` is the test
+ * file's module-registry `require`, with `resolve` and a `cache` view of that registry; under Node it is
+ * `Module.prototype.require`, which has neither, and `constructor` is the `Module` class.
+ */
+type HostModule = {
+  readonly require?: unknown;
+  readonly constructor?: unknown;
+};
+
+/**
+ * The CommonJS module record Node and test runners wrap the CommonJS build in, read by
+ * {@link hostModuleOf}. Declared here, untyped, rather than taken from `@types/node`, which an SDK
+ * without Node-only features does not install: without it `tsc` cannot find the name. A `declare`
+ * emits nothing, so the name still resolves to the wrapper's `module` at run time.
+ */
+declare const module: unknown;
+
+/** The globals the bridge feature-detects; browsers and most edge runtimes have no `process`. */
+type BridgeGlobals = {
+  readonly process?:
+    | {
+        readonly getBuiltinModule?: (id: string) => unknown;
+        readonly cwd?: () => string;
+        readonly argv?: readonly string[];
+        readonly mainModule?: object | undefined;
+      }
+    | undefined;
+};
+
+/** One module cache the application's copy of the library may sit in, and its entry files there. */
+type LibraryLookup = { readonly cache: NodeRequire['cache']; readonly entries: readonly string[] };
+
+/**
+ * Where the application's copy of the library would load from, resolved once on the first refusal:
+ * each module cache (Node's, and a test runner's own registry) with every distinct entry file in it.
+ * Empty once resolution has run and found nothing to bridge (no `node:module`, or the library is not
+ * installed), so later refusals cost nothing.
+ */
+let libraryLookups: readonly LibraryLookup[] | undefined;
+
+/** Library classes this copy of the SDK has already tried to bridge, so a failure is not retried. */
+const attemptedLibraryClasses = new WeakSet<object>();
+
+/**
+ * Whether `value` is an object whose prototype chain carries {@link REFUSAL_BRAND}. The brand is a
+ * registry symbol, so any code can forge it; that is accepted because `instanceof` is no security
+ * boundary. Reading it runs a Proxy's `get` trap, as `instanceof`'s own prototype walk runs its
+ * `getPrototypeOf` trap.
+ */
+const isBridgedRefusal = (value: unknown): boolean =>
+  (typeof value === 'object' || typeof value === 'function') &&
+  value !== null &&
+  (value as Record<symbol, unknown>)[REFUSAL_BRAND] === true;
+
+/**
+ * Makes `instanceof` against `standardwebhooks`' `WebhookVerificationError` match this SDK's refusals,
+ * so a handler still importing the library's class keeps catching them after the move to the SDK.
+ *
+ * A refusal already extends the SDK's base error, and a prototype chain is linear, so the library's
+ * class cannot be a second base the way it is in Python. The library's own `Symbol.hasInstance` is
+ * what can answer instead, and is wrapped to accept refusals carrying {@link REFUSAL_BRAND}.
+ *
+ * The SDK never loads the library. It only bridges a copy the application has already loaded, found
+ * in a module cache: Node's (`require.cache`, where an ESM `import` of the CommonJS-only library lands
+ * too) and, in the CommonJS build, the registry of a test runner that hands each module its own
+ * `require` (Jest). In each it looks under the entry the resolver gives from the working directory,
+ * the entry script and this file, and under any file of a `standardwebhooks` package already in the
+ * cache when the first refusal is raised (a workspace package's own copy, a nested one). Resolving
+ * reads files but runs none, so a `node_modules` planted in an untrusted working directory is never
+ * executed; requiring from there would be. The caches are checked on every refusal, a single lookup
+ * per entry, so a library that resolves from the application and is loaded after the first refusal is
+ * picked up by the next one.
+ *
+ * Feature-detected through `process.getBuiltinModule`, `process.mainModule` or this file's own
+ * CommonJS `module`, never a static import or `require`, so no bundler tries to resolve the library and
+ * browsers and edge runtimes, which have none of them, skip it. Where it cannot work (a copy bundled
+ * into the application, or one an ES module application loads on Node before 20.16, on 21 or on 22
+ * before 22.3), {@link isWebhookVerificationError} still recognises both classes. Any failure leaves
+ * the refusal exactly as it was without the library.
+ *
+ * Patching the library's class is deliberate and process-wide, and there is no opt-out: it changes
+ * that class's `instanceof` answer for every caller in the process, but only ever to add refusals,
+ * which are a refused delivery in every sense a handler of the library's class relies on.
+ */
+const bridgeLibraryError = (): void => {
+  let lookups: typeof libraryLookups;
+  try {
+    lookups = libraryLookups ?? resolveLibraryLookups();
+  } catch {
+    // A locked-down runtime (a `process` polyfill that throws): leave the error as is.
+    return;
+  }
+  for (const lookup of lookups ?? []) {
+    for (const entry of lookup.entries) {
+      // Per entry, so one copy that cannot be patched (a frozen class) leaves the others bridged.
+      try {
+        const exported = lookup.cache[entry]?.exports as
+          | { readonly WebhookVerificationError?: unknown }
+          | undefined;
+        const libraryClass = exported?.WebhookVerificationError;
+        if (typeof libraryClass !== 'function' || attemptedLibraryClasses.has(libraryClass)) continue;
+        attemptedLibraryClasses.add(libraryClass);
+        // A class whose instances are refusals (this SDK's own, or another SDK's that a planted entry
+        // re-exports) is never wrapped: the wrapper would make it match every other SDK's refusals too.
+        if (isBridgedRefusal((libraryClass as { readonly prototype?: unknown }).prototype)) continue;
+        if (Object.prototype.hasOwnProperty.call(libraryClass, BRIDGED_MARK)) continue;
+        patchLibraryHasInstance(libraryClass);
+      } catch {
+        // A frozen class, or a getter that throws: this copy keeps its own answer.
+      }
+    }
+  }
+};
+
+/**
+ * This file's CommonJS `module`, or `undefined` where there is none: the ES module build, which Node
+ * evaluates with no `module` in scope, and a bundle that gives the file no `require` of its own.
+ *
+ * Read through `typeof`, so the ES module build never throws a `ReferenceError` on it, and only ever
+ * read, never assigned or called, so a bundler treats the file as it did before (esbuild, webpack and
+ * Rollup emit no warning for it). It is what reaches a test runner's own module registry: Jest gives
+ * each module a `require` whose `cache` is a view of the test file's registry, which Node's
+ * `require.cache` never sees.
+ */
+const hostModuleOf = (): HostModule | undefined =>
+  typeof module === 'object' && module !== null ? (module as HostModule) : undefined;
+
+/**
+ * The module-scope `require` a test runner hands this file, when it carries the `resolve` and `cache`
+ * the bridge reads (Jest's does); `undefined` under Node, whose `module.require` has neither and
+ * whose cache {@link nodeModuleOf} already reaches.
+ */
+const registryRequireOf = (host: HostModule | undefined): NodeRequire | undefined => {
+  const candidate: unknown = host?.require;
+  if (typeof candidate !== 'function') return undefined;
+  const { resolve, cache } = candidate as { readonly resolve?: unknown; readonly cache?: unknown };
+  return typeof resolve === 'function' && typeof cache === 'object' && cache !== null
+    ? (candidate as NodeRequire)
+    : undefined;
+};
+
+/**
+ * Resolves the library's entry file in every module cache the bridge can reach, adds every file of
+ * the library each cache already holds, and records the result in {@link libraryLookups}.
+ *
+ * Node's cache is reached through `node:module` (see {@link nodeModuleOf}), resolving from the working
+ * directory and the entry script. A test runner's registry is reached through the `require` it hands
+ * this file (see {@link registryRequireOf}), resolving from this file and the working directory.
+ * Leaves {@link libraryLookups} unset where neither exists, so a runtime that swaps `process` back in
+ * is still looked at; records an empty list once resolution has run and found no entry.
+ */
+const resolveLibraryLookups = (): typeof libraryLookups => {
+  // Named apart from the `process` and `require` globals, so that nothing here reads to a bundler as
+  // the CommonJS `require` of the library, whether or not it tracks scopes.
+  const runtime = (globalThis as unknown as BridgeGlobals).process;
+  const host = hostModuleOf();
+  const registryRequire = registryRequireOf(host);
+  const nodeModule = runtime === undefined ? undefined : nodeModuleOf(runtime, host);
+  if (nodeModule === undefined && registryRequire === undefined) return undefined;
+  const cwd = typeof runtime?.cwd === 'function' ? runtime.cwd() : undefined;
+  /** Each `require` to resolve with, and the bases it resolves from; `undefined` is its own file. */
+  const resolvers: { readonly require: NodeRequire; readonly bases: readonly (string | undefined)[] }[] = [];
+  if (typeof nodeModule?.createRequire === 'function' && typeof cwd === 'string') {
+    // The trailing separator makes `createRequire` treat the directory as the requiring location.
+    const nodeRequire = nodeModule.createRequire(`${cwd}/`);
+    const getBuiltinModule = runtime?.getBuiltinModule;
+    /**
+     * A builtin module by id, through `process.getBuiltinModule` or else the `require` made above. Only
+     * ever asked for `node:fs`, so the `require` fallback runs no file either.
+     */
+    const builtin = (id: string): unknown =>
+      typeof getBuiltinModule === 'function' ? getBuiltinModule(id) : nodeRequire(id);
+    resolvers.push({ require: nodeRequire, bases: [cwd, ...entryScriptBases(runtime?.argv?.[1], builtin)] });
+  }
+  // Last, so where it is the same cache as Node's (a runner that hands out Node's own `require`) the
+  // entries found above are kept and nothing is looked up twice.
+  if (registryRequire) {
+    resolvers.push({
+      require: registryRequire,
+      bases: typeof cwd === 'string' ? [undefined, cwd] : [undefined],
+    });
+  }
+  const found = new Map<NodeRequire['cache'], Set<string>>();
+  for (const { require: resolver, bases } of resolvers) {
+    const entries = found.get(resolver.cache) ?? new Set<string>();
+    found.set(resolver.cache, entries);
+    for (const base of bases) {
+      try {
+        const options = base === undefined ? undefined : { paths: [base] };
+        const entry = resolver.resolve(LIBRARY_ID, options);
+        const manifest = resolver.resolve(`${LIBRARY_ID}/package.json`, options);
+        if (isOwnPackageFile(entry, manifest)) entries.add(entry);
+      } catch {
+        // Not installed where this base looks: nothing to bridge from here.
+      }
+    }
+    // A copy no base resolves to — a workspace package's unhoisted one, a nested one — is only found
+    // loaded. The cache holds files the application already ran, so reading it runs nothing new.
+    // Once, here: scanning on every refusal cost ~0.6 ms with 5,000 modules loaded.
+    for (const [key, cached] of Object.entries(resolver.cache)) {
+      if (!isLibraryCacheKey(key)) continue;
+      // Per key, so one copy whose export throws when read (a getter, a Proxy) leaves the rest found.
+      try {
+        const exported = cached?.exports as { readonly WebhookVerificationError?: unknown } | undefined;
+        if (typeof exported?.WebhookVerificationError === 'function') entries.add(key);
+      } catch {
+        // This copy cannot be read, so it cannot be bridged either.
+      }
+    }
+  }
+  libraryLookups = [...found]
+    .filter(([, entries]) => entries.size > 0)
+    .map(([cache, entries]) => ({ cache, entries: [...entries] }));
+  return libraryLookups;
+};
+
+/**
+ * `node:module`; `null` when `process.getBuiltinModule` has none to give; `undefined` where the runtime
+ * offers no synchronous way to it.
+ *
+ * `process.getBuiltinModule` first (Node 20.16+ and 22.3+, Bun). Before it, a CommonJS module's
+ * constructor is the `Module` class `node:module` exports: the application's entry module,
+ * `process.mainModule`, which a CommonJS entry sets (reading it prints no deprecation warning), and
+ * else this file's own `module` in the CommonJS build, which an ES module application that loads that
+ * build still provides. So Node 20.0–20.15, 21 and 22.0–22.2 bridge there too. An ES module
+ * application loading the ES module build has neither, and the only other way in, `import()`, is
+ * asynchronous: it would leave the first refusal unbridged and put a dynamic import into every bundle
+ * of the SDK, so that case is left to {@link isWebhookVerificationError}.
+ */
+const nodeModuleOf = (
+  runtime: NonNullable<BridgeGlobals['process']>,
+  host: HostModule | undefined,
+): NodeModule | null | undefined => {
+  if (typeof runtime.getBuiltinModule === 'function') {
+    return (runtime.getBuiltinModule('node:module') as NodeModule | undefined) ?? null;
+  }
+  for (const candidate of [runtime.mainModule as HostModule | undefined, host]) {
+    const constructor = candidate?.constructor as NodeModule | undefined;
+    if (typeof constructor?.createRequire === 'function') return constructor;
+  }
+  return undefined;
+};
+
+/**
+ * Whether a module-cache key is a file of a `standardwebhooks` package: the last `node_modules` in its
+ * path is directly followed by the package's directory, so the file is the package's own and not one
+ * of a package nested inside it, the same rule {@link isOwnPackageFile} applies to a resolved entry.
+ */
+const isLibraryCacheKey = (key: string): boolean => {
+  const segments = key.replace(/\\/g, '/').split('/');
+  const last = segments.lastIndexOf('node_modules');
+  return last !== -1 && segments[last + 1] === LIBRARY_ID && segments.length > last + 2;
+};
+
+/**
+ * Whether `entry` is a file of the package whose `package.json` is `manifest`: inside that package's
+ * own directory, which sits directly in a `node_modules`, and not inside a package nested under it. A
+ * `main` may point anywhere, even at another module the application has loaded, so a match anywhere
+ * in the path is not enough.
+ */
+const isOwnPackageFile = (entry: string, manifest: string): boolean => {
+  const file = entry.replace(/\\/g, '/');
+  const root = manifest.replace(/\\/g, '/').replace(/\/package\.json$/, '');
+  if (!root.endsWith(`/node_modules/${LIBRARY_ID}`) || !file.startsWith(`${root}/`)) return false;
+  return !file
+    .slice(root.length + 1)
+    .split('/')
+    .includes('node_modules');
+};
+
+/**
+ * The entry script as given and, when it differs, its real path. Either is a usable resolution base:
+ * the `node_modules` walk starts at the path itself (a directory entry such as `node /srv/app`) and
+ * climbs through every parent (a file entry). The real path reaches the package a symlinked bin
+ * belongs to.
+ */
+const entryScriptBases = (
+  script: string | undefined,
+  builtin: (id: string) => unknown,
+): readonly string[] => {
+  if (typeof script !== 'string' || script === '') return [];
+  try {
+    const fs = builtin('node:fs') as { readonly realpathSync?: (path: string) => string } | undefined;
+    const real = typeof fs?.realpathSync === 'function' ? fs.realpathSync(script) : script;
+    return real === script ? [script] : [script, real];
+  } catch {
+    // The script is gone or unreadable: the path as given is still worth resolving from.
+    return [script];
+  }
+};
+
+/**
+ * Wraps `libraryClass`'s `Symbol.hasInstance` so it also accepts refusals carrying
+ * {@link REFUSAL_BRAND}, deferring to whatever answered before for everything else, and marks the
+ * class so no other copy of an SDK, and no reload of this one, wraps it again. The extra answer is
+ * given only for `libraryClass` itself: a subclass inherits the static method, and a refusal is no
+ * instance of a caller's own subclass.
+ */
+const patchLibraryHasInstance = (libraryClass: object): void => {
+  const inherited: unknown = (libraryClass as unknown as Record<symbol, unknown>)[Symbol.hasInstance];
+  const previous =
+    typeof inherited === 'function'
+      ? (inherited as (this: unknown, value: unknown) => boolean)
+      : Function.prototype[Symbol.hasInstance];
+  Object.defineProperty(libraryClass, Symbol.hasInstance, {
+    configurable: true,
+    /**
+     * True for a bridged refusal when asked about `libraryClass` itself; anything else gets the answer
+     * the class gave before.
+     */
+    value: function hasInstance(this: unknown, value: unknown): boolean {
+      if (this === libraryClass && isBridgedRefusal(value)) return true;
+      return previous.call(this, value);
+    },
+  });
+  Object.defineProperty(libraryClass, BRIDGED_MARK, { value: true });
+};
+
+/**
+ * Whether `error` is a refused webhook delivery: this SDK's {@link WebhookVerificationError} or a
+ * subclass of it, from either build or any other copy of the SDK, or an `Error` named
+ * `WebhookVerificationError`, as every copy of the `standardwebhooks` library's is.
+ *
+ * Use it where a handler catches both classes and `instanceof` against the library's cannot be relied
+ * on. The SDK can only bridge a copy of the library it finds in a module cache it can reach, so a copy
+ * bundled into the application, and every copy in a browser, an edge runtime or an ES module
+ * application on Node before 20.16, on 21 or on 22 before 22.3, is not bridged. The SDK's own classes
+ * are matched by the brand their prototype carries, which a subclass inherits whatever it names
+ * itself. The library's class is matched by its name, which its constructor sets on every instance and
+ * which survives minification, since nothing the SDK can read tells one copy of it from another; any
+ * other verifier's error of that name is a refused delivery too, and matches as well. The name match
+ * goes through `instanceof Error`, so a library error from another realm (a `vm` context, an iframe)
+ * does not match; an SDK refusal from one does, by its brand.
+ *
+ * A true answer narrows to the SDK's class or to an `Error` of that name, not to the SDK's class
+ * alone: the library's error carries none of the members the SDK's base error may add (a status code,
+ * a response body), so a handler has to narrow further with `instanceof` before reading them. The class
+ * is nominal (see {@link WebhookVerificationError}), so a false answer leaves an `Error`-typed value an
+ * `Error`.
+ */
+export const isWebhookVerificationError = (
+  error: unknown,
+): error is WebhookVerificationError | (Error & { readonly name: 'WebhookVerificationError' }) =>
+  typeof error === 'object' &&
+  error !== null &&
+  (isBridgedRefusal(error) || (error instanceof Error && error.name === 'WebhookVerificationError'));
 
 /**
  * Verifies a Standard Webhooks delivery, throwing when it is not authentic.
@@ -59,19 +468,32 @@ export class WebhookVerificationError extends Error {
  * The HMAC-SHA256 of `{id}.{timestamp}.{payload}`, keyed with the base64-decoded secret, must equal one
  * of the space-separated `v1,<base64>` entries in the signature header, and the timestamp must be
  * within the scheme's window of now. `nowSeconds` exists for tests.
+ *
+ * `headers` may be any shape a request handler holds: a fetch `Headers`, a Node header record whose
+ * values may be arrays, or entry pairs. They are read through the runtime's one header lookup, so every
+ * webhook method reads a delivery's headers the same way.
  */
 export const verifyWebhookSignature = (
   payload: string,
-  headers: Record<string, string>,
+  headers: HeadersLike | HeadersProtocol,
   secret: string,
   scheme: WebhookSignatureScheme = {},
   nowSeconds: number = Math.floor(Date.now() / 1000),
 ): void => {
   const algorithm = scheme.algorithm ?? DEFAULT_SCHEME.algorithm;
   // Anything else would compute the wrong MAC and reject every genuine delivery as unsigned, so it fails
-  // up front and says why.
+  // up front and says why. It is a `WebhookVerificationError`, the class callers catch to reject a
+  // delivery, so the refusal reaches their handler instead of escaping as a crash; the message names
+  // the decode-only method the emitter passed (companions can be renamed or turned off, which this
+  // shared module cannot know), since the signature then has to be checked outside the SDK.
   if (algorithm !== 'hmac-sha256') {
-    throw new Error(`Webhook signature algorithm ${algorithm} is not supported; only hmac-sha256 is`);
+    const decode = scheme.decodeOnly
+      ? `decode the body with ${scheme.decodeOnly}`
+      : 'parse the body yourself';
+    throw new WebhookVerificationError(
+      `Webhook signature algorithm ${algorithm} is not supported; only hmac-sha256 is. ` +
+        `Verify the signature yourself, then ${decode}`,
+    );
   }
   // The secret is checked first, so a misconfigured SDK fails the same way whatever the delivery.
   const key = decodeSecret(secret);
@@ -80,16 +502,8 @@ export const verifyWebhookSignature = (
   if (headers === null || typeof headers !== 'object') {
     throw new WebhookVerificationError('Missing required headers');
   }
-  const {
-    id,
-    timestamp: timestampHeader,
-    signature: signatureHeader,
-  } = signatureHeaders(headers, [
-    asciiLowerCase(scheme.idHeader ?? DEFAULT_SCHEME.idHeader),
-    asciiLowerCase(scheme.timestampHeader ?? DEFAULT_SCHEME.timestampHeader),
-    asciiLowerCase(scheme.signatureHeader ?? DEFAULT_SCHEME.signatureHeader),
-  ]);
-  if (!signatureHeader || !id || !timestampHeader) {
+  const { id, timestampHeader, signatures } = readSignedHeaders(headers, scheme);
+  if (!signatures || !id || !timestampHeader) {
     throw new WebhookVerificationError('Missing required headers');
   }
 
@@ -111,7 +525,7 @@ export const verifyWebhookSignature = (
 
   // A sender rotating its secret signs with each key it holds, so any one matching entry is enough.
   // Entries for other versions (`v1a,…`) are skipped rather than rejected.
-  for (const spaced of signatureHeader.split(' ')) {
+  for (const spaced of signatures.split(' ')) {
     // Node and most frameworks fold repeated header lines into one value joined by `, `, which leaves
     // a trailing comma on every entry but the last.
     const entry = spaced.endsWith(',') ? spaced.slice(0, -1) : spaced;
@@ -127,71 +541,41 @@ export const verifyWebhookSignature = (
 };
 
 /**
- * Lowercases ASCII letters only. HTTP header names are ASCII, and `toLowerCase` also folds characters
- * such as the Kelvin sign (U+212A) to `k`, which would let a header no client sends match one it does.
+ * The id, timestamp and signature headers a delivery carries.
+ *
+ * The id and timestamp are single values, so a repeated one reads as its first. Every signature value
+ * is kept and joined the way `Headers.get` and Node fold repeated lines (`, `), so a sender rotating
+ * its key across two `webhook-signature` lines verifies whether the handler holds a fetch `Headers`, a
+ * folded Node record or Node's `headersDistinct` arrays.
+ *
+ * A malformed entry list (a `null` row, a name that is not a string) makes the lookup throw a
+ * `TypeError`; it is reported as missing headers instead, so a caller of the verifier (the parse
+ * method passes its headers straight here) catching only `WebhookVerificationError` sees the refusal.
  */
-const asciiLowerCase = (name: string): string => name.replace(/[A-Z]/g, (letter) => letter.toLowerCase());
-
-/**
- * The id, timestamp and signature headers, looked up case-insensitively because HTTP header names are,
- * and frameworks hand them over in whatever case they received or normalized them to. When two keys
- * differ only in case, the later one wins. A value that is not a string (a Node header array, say) is
- * treated as missing rather than coerced.
- */
-const signatureHeaders = (
-  headers: Record<string, string>,
-  [idName, timestampName, signatureName]: readonly [string, string, string],
-): { id?: string | undefined; timestamp?: string | undefined; signature?: string | undefined } => {
-  const found: { id?: string | undefined; timestamp?: string | undefined; signature?: string | undefined } =
-    {};
-  for (const name of Object.keys(headers)) {
-    const value = headers[name];
-    const lower = asciiLowerCase(name);
-    const text = typeof value === 'string' ? value : undefined;
-    if (lower === idName) found.id = text;
-    else if (lower === timestampName) found.timestamp = text;
-    else if (lower === signatureName) found.signature = text;
+const readSignedHeaders = (
+  headers: HeadersLike | HeadersProtocol,
+  scheme: WebhookSignatureScheme,
+): { id: string | undefined; timestampHeader: string | undefined; signatures: string } => {
+  try {
+    return {
+      id: getHeader(headers, scheme.idHeader ?? DEFAULT_SCHEME.idHeader),
+      timestampHeader: getHeader(headers, scheme.timestampHeader ?? DEFAULT_SCHEME.timestampHeader),
+      signatures: getHeaderValues(headers, scheme.signatureHeader ?? DEFAULT_SCHEME.signatureHeader).join(
+        ', ',
+      ),
+    };
+  } catch {
+    throw new WebhookVerificationError('Missing required headers');
   }
-  return found;
 };
 
-/** The globals the verifier feature-detects, each possibly absent: most runtimes lack at least one. */
+/** The global the verifier feature-detects; browsers and edge runtimes have no `Buffer`. */
 type RuntimeGlobals = {
-  readonly process?: { readonly getBuiltinModule?: (id: string) => unknown } | undefined;
   readonly Buffer?: { readonly isBuffer?: (value: unknown) => boolean } | undefined;
 };
 
 /** {@link RuntimeGlobals}, read on every call so a test or polyfill that swaps them is seen. */
 const runtimeGlobals = (): RuntimeGlobals => globalThis as unknown as RuntimeGlobals;
-
-/** The slice of `node:crypto` the verifier uses, when the runtime hands it out synchronously. */
-type NodeCrypto = {
-  readonly createHmac: (
-    algorithm: string,
-    key: Uint8Array,
-  ) => { update(data: string | Uint8Array): { update(data: string | Uint8Array): { digest(): Uint8Array } } };
-  readonly timingSafeEqual?: (left: Uint8Array, right: Uint8Array) => boolean;
-};
-
-/**
- * `node:crypto`, through `process.getBuiltinModule` so no static import reaches a browser bundle. `null`
- * where it is missing or throws, which selects the TypeScript implementations below. Looked up on every
- * call rather than cached: the runtime caches the module, and a stale answer would outlive a test or
- * polyfill that swaps `process`.
- */
-const nodeCrypto = (): NodeCrypto | null => {
-  try {
-    const process = runtimeGlobals().process;
-    const crypto =
-      typeof process?.getBuiltinModule === 'function'
-        ? (process.getBuiltinModule('node:crypto') as Partial<NodeCrypto> | undefined)
-        : undefined;
-    return typeof crypto?.createHmac === 'function' ? (crypto as NodeCrypto) : null;
-  } catch {
-    // A polyfilled or locked-down `process`: fall back to the TypeScript implementations.
-    return null;
-  }
-};
 
 /**
  * `node:crypto`'s constant-time comparison, which throws on a length mismatch rather than answering:
@@ -318,196 +702,3 @@ const constantTimeEqual = (left: Uint8Array, right: Uint8Array): boolean => {
   for (let i = 0; i < left.length; i++) difference |= left[i]! ^ right[i]!;
   return difference === 0;
 };
-
-/** The SHA-256 block size, in bytes: what HMAC pads its key to. */
-const SHA256_BLOCK_BYTES = 64;
-
-/** The first 32 bits of the fractional parts of the cube roots of the first 64 primes. */
-const SHA256_K = new Int32Array([
-  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98,
-  0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
-  0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8,
-  0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819,
-  0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
-  0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
-  0xc67178f2,
-]);
-
-/** The first 32 bits of the fractional parts of the square roots of the first eight primes. */
-const SHA256_H0 = [
-  0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
-];
-
-/**
- * An in-progress SHA-256 (FIPS 180-4, section 6.2). Input is hashed straight from the caller's bytes a
- * block at a time, so a large payload is never copied into a padded buffer; only a partial block waits
- * in `pending`.
- */
-type Sha256State = {
-  readonly state: Int32Array;
-  readonly schedule: Int32Array;
-  readonly pending: Uint8Array;
-  pendingLength: number;
-  /** Bytes hashed so far, for the length field. */
-  total: number;
-};
-
-/** A fresh SHA-256. */
-const sha256Start = (): Sha256State => ({
-  state: new Int32Array(SHA256_H0),
-  schedule: new Int32Array(64),
-  pending: new Uint8Array(SHA256_BLOCK_BYTES),
-  pendingLength: 0,
-  total: 0,
-});
-
-/**
- * Runs the compression function over every whole block of `bytes` from `offset` to `end`.
- *
- * Kept as one flat function over local `| 0` integers, with the rotations written out, because that is
- * the shape JavaScript engines compile to straight 32-bit arithmetic; helper calls and array-held
- * working variables cost several times the throughput.
- */
-const sha256Blocks = (hash: Sha256State, bytes: Uint8Array, offset: number, end: number): void => {
-  const { state, schedule: w } = hash;
-  let h0 = state[0]!;
-  let h1 = state[1]!;
-  let h2 = state[2]!;
-  let h3 = state[3]!;
-  let h4 = state[4]!;
-  let h5 = state[5]!;
-  let h6 = state[6]!;
-  let h7 = state[7]!;
-  for (let at = offset; at + SHA256_BLOCK_BYTES <= end; at += SHA256_BLOCK_BYTES) {
-    for (let t = 0; t < 16; t++) {
-      const i = at + t * 4;
-      w[t] = (bytes[i]! << 24) | (bytes[i + 1]! << 16) | (bytes[i + 2]! << 8) | bytes[i + 3]!;
-    }
-    for (let t = 16; t < 64; t++) {
-      const low = w[t - 15]!;
-      const high = w[t - 2]!;
-      const sigma0 = ((low >>> 7) | (low << 25)) ^ ((low >>> 18) | (low << 14)) ^ (low >>> 3);
-      const sigma1 = ((high >>> 17) | (high << 15)) ^ ((high >>> 19) | (high << 13)) ^ (high >>> 10);
-      w[t] = (w[t - 16]! + sigma0 + w[t - 7]! + sigma1) | 0;
-    }
-    let a = h0;
-    let b = h1;
-    let c = h2;
-    let d = h3;
-    let e = h4;
-    let f = h5;
-    let g = h6;
-    let h = h7;
-    for (let t = 0; t < 64; t++) {
-      const sum1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
-      // Ch and Maj in their three-operation forms, equal to FIPS 180-4's `(e & f) ^ (~e & g)` and
-      // `(a & b) ^ (a & c) ^ (b & c)`.
-      const choice = g ^ (e & (f ^ g));
-      const temp1 = (h + sum1 + choice + SHA256_K[t]! + w[t]!) | 0;
-      const sum0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
-      const majority = (a & b) ^ (c & (a ^ b));
-      const temp2 = (sum0 + majority) | 0;
-      h = g;
-      g = f;
-      f = e;
-      e = (d + temp1) | 0;
-      d = c;
-      c = b;
-      b = a;
-      a = (temp1 + temp2) | 0;
-    }
-    h0 = (h0 + a) | 0;
-    h1 = (h1 + b) | 0;
-    h2 = (h2 + c) | 0;
-    h3 = (h3 + d) | 0;
-    h4 = (h4 + e) | 0;
-    h5 = (h5 + f) | 0;
-    h6 = (h6 + g) | 0;
-    h7 = (h7 + h) | 0;
-  }
-  state[0] = h0;
-  state[1] = h1;
-  state[2] = h2;
-  state[3] = h3;
-  state[4] = h4;
-  state[5] = h5;
-  state[6] = h6;
-  state[7] = h7;
-};
-
-/** Feeds `bytes` into `hash`: topping up a pending partial block first, then whole blocks in place. */
-const sha256Update = (hash: Sha256State, bytes: Uint8Array): void => {
-  hash.total += bytes.length;
-  let offset = 0;
-  if (hash.pendingLength > 0) {
-    offset = Math.min(SHA256_BLOCK_BYTES - hash.pendingLength, bytes.length);
-    hash.pending.set(bytes.subarray(0, offset), hash.pendingLength);
-    hash.pendingLength += offset;
-    if (hash.pendingLength < SHA256_BLOCK_BYTES) return;
-    sha256Blocks(hash, hash.pending, 0, SHA256_BLOCK_BYTES);
-    hash.pendingLength = 0;
-  }
-  const whole = offset + Math.floor((bytes.length - offset) / SHA256_BLOCK_BYTES) * SHA256_BLOCK_BYTES;
-  sha256Blocks(hash, bytes, offset, whole);
-  hash.pending.set(bytes.subarray(whole), 0);
-  hash.pendingLength = bytes.length - whole;
-};
-
-/**
- * Pads and finishes `hash` (section 5.1.1): a single 1 bit, zeros, then the message length in bits as a
- * 64-bit big-endian integer, filling out whole 64-byte blocks. The 0x80 byte and the 8-byte length need
- * 9 bytes, so 55 pending bytes still fit one block and 56 need two.
- */
-const sha256Finish = (hash: Sha256State): Uint8Array => {
-  const tail = new Uint8Array(
-    hash.pendingLength + 9 > SHA256_BLOCK_BYTES ? 2 * SHA256_BLOCK_BYTES : SHA256_BLOCK_BYTES,
-  );
-  tail.set(hash.pending.subarray(0, hash.pendingLength));
-  tail[hash.pendingLength] = 0x80;
-  const view = new DataView(tail.buffer);
-  // Bit lengths past 2^32 need the high word, which bitwise operators would truncate.
-  const bitLength = hash.total * 8;
-  view.setUint32(tail.length - 8, Math.floor(bitLength / 0x100000000));
-  view.setUint32(tail.length - 4, bitLength >>> 0);
-  sha256Blocks(hash, tail, 0, tail.length);
-
-  const digest = new Uint8Array(32);
-  const digestView = new DataView(digest.buffer);
-  for (let i = 0; i < 8; i++) digestView.setInt32(i * 4, hash.state[i]!);
-  return digest;
-};
-
-/** The SHA-256 digest of `message`, as 32 bytes. */
-export const sha256 = (message: Uint8Array): Uint8Array => {
-  const hash = sha256Start();
-  sha256Update(hash, message);
-  return sha256Finish(hash);
-};
-
-/**
- * The HMAC-SHA256 (RFC 2104) of the concatenation of `parts` under `key`, as 32 bytes. The parts are
- * streamed into the inner hash, so the signed content is never assembled into one buffer.
- */
-const hmacSha256Parts = (key: Uint8Array, parts: readonly Uint8Array[]): Uint8Array => {
-  // A key longer than the block is hashed first; a shorter one is zero-padded to the block.
-  const block = new Uint8Array(SHA256_BLOCK_BYTES);
-  block.set(key.length > SHA256_BLOCK_BYTES ? sha256(key) : key);
-  const innerPad = new Uint8Array(SHA256_BLOCK_BYTES);
-  const outerPad = new Uint8Array(SHA256_BLOCK_BYTES);
-  for (let i = 0; i < SHA256_BLOCK_BYTES; i++) {
-    innerPad[i] = block[i]! ^ 0x36;
-    outerPad[i] = block[i]! ^ 0x5c;
-  }
-  const inner = sha256Start();
-  sha256Update(inner, innerPad);
-  for (const part of parts) sha256Update(inner, part);
-  const outer = sha256Start();
-  sha256Update(outer, outerPad);
-  sha256Update(outer, sha256Finish(inner));
-  return sha256Finish(outer);
-};
-
-/** The HMAC-SHA256 (RFC 2104) of `message` under `key`, as 32 bytes. */
-export const hmacSha256 = (key: Uint8Array, message: Uint8Array): Uint8Array =>
-  hmacSha256Parts(key, [message]);
